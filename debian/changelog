@@ -1,0 +1,5 @@
+upki (1.0.0~beta.1-0ubuntu1) resolute; urgency=medium
+
+  * Initial upload (LP: #2139297)
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Mon, 26 Jan 2026 09:05:15 +0100

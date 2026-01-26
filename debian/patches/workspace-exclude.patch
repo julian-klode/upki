@@ -1,0 +1,19 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 28 Jan 2026 17:03:54 +0100
+Subject: Exclude rust-vendor directory from workspace
+
+---
+ Cargo.toml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 4d4d13d..24773b4 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,5 +1,6 @@
+ [workspace]
+ members = ["upki", "upki-cli", "upki-mirror", "upki-openssl", "revoke-test", "rustls-upki", ]
++exclude = ["rust-vendor"]
+ resolver = "3"
+ 
+ [workspace.package]

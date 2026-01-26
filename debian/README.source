@@ -1,0 +1,10 @@
+This package uses vendored Rust dependencies, run
+
+debian/rules vendor-tarball
+
+to recreate the rust-vendor directory and build an additional
+orig tarball.
+
+This package also uses patched dh-cargo helpers in debian/bin;
+see the XXX comments and their README for changes made therein
+to accomodate building this workspace.

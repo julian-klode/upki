@@ -1,0 +1,84 @@
+#!/usr/bin/make -f
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/buildflags.mk
+include /usr/share/rustc/architecture.mk
+export CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+export DEB_HOST_RUST_TYPE DEB_HOST_GNU_TYPE
+export CARGO_PROFILE_RELEASE_DEBUG=true
+VERSION := $(shell dpkg-parsechangelog -S Version|sed -e "s|.*~\(.*\)-.*|\1|g")
+UPSTREAM_VERSION := $(shell dpkg-parsechangelog -S Version|cut -d- -f1)
+
+# Vendoring setup
+# XXX: patched version of dh-cargo's cargo wrapper that works in a workspace
+export CARGO = $(CURDIR)/debian/bin/cargo
+export CARGO_VENDOR_DIR = rust-vendor
+export CARGO_HOME = $(CURDIR)/debian/cargo_home
+
+# Extract the version for aws-lc-sys as it is used in dh-cargo-built-using
+AWS_LC_SYS_VERSION := $(shell \
+    sed -n '/^\[package\]/,/^\[/{s/^version *= *"\(.*\)".*/\1/p}' \
+    $(CARGO_VENDOR_DIR)/aws-lc-sys/Cargo.toml | head -n1 \
+)
+export AWS_LC_SYS_VERSION
+
+VENDOR_TARBALL = upki_$(UPSTREAM_VERSION).orig-$(CARGO_VENDOR_DIR).tar.xz
+
+%:
+	dh $@ --buildsystem cargo
+
+# Merge the per-crate debian/copyright.in.d/* files (one full DEP-5 copyright
+# file per vendored crate, as produced by run-decopy) into a single
+# debian/copyright.  Standalone license texts are deduplicated; clashing short
+# names with differing text are renamed after the crates that use them.
+debian/copyright: debian/copyright.header debian/copyright.in.d/* debian/bin/merge-copyright debian/rules
+	debian/bin/merge-copyright \
+		--header debian/copyright.header \
+		--in-dir debian/copyright.in.d \
+		-o debian/copyright.new
+	cme check dpkg-copyright -file debian/copyright.new
+	mv debian/copyright.new debian/copyright
+
+vendor-tarball-quick-check:
+	if [ -e ../$(VENDOR_TARBALL) ]; then echo "../$(VENDOR_TARBALL) already exists, bailing!"; exit 1; fi
+
+vendor-deps-cargo:
+	rm -rf $(CARGO_VENDOR_DIR)
+	# Deliberately don't use the wrapper, as it expects the configure step
+	# to have occurred already.
+	# If you have to modify the path here, don't forget to change the README.source doc
+	# as well.
+	env -i cargo-vendor-filterer --all-features  --tier 2  --platform '*-*-linux-gnu' --platform '*-*-linux-gnueabi' $(CARGO_VENDOR_DIR)
+
+vendor-deps: vendor-deps-cargo
+	rm -r \
+		$(CARGO_VENDOR_DIR)/*/tests
+	# Remove the checksum files to allow us to patch the crates to remove extraneous dependencies
+	for crate in $(CARGO_VENDOR_DIR)/*; do \
+		sed -i 's/^{"files":.*"package":"\([a-z0-9]\+\)"}$$/{"files":{},"package":"\1"}/' $$crate/.cargo-checksum.json; \
+		done
+	# Cleanup temp files
+	rm -rf $(CARGO_HOME)
+
+vendor-tarball: vendor-tarball-quick-check vendor-deps
+	tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -caf ../$(VENDOR_TARBALL) $(CARGO_VENDOR_DIR)
+
+override_dh_auto_configure:
+	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki_$(VERSION) $(CARGO) prepare-debian $(CARGO_VENDOR_DIR)
+	/usr/share/cargo/bin/dh-cargo-vendored-sources
+
+override_dh_auto_test:
+	#$(CARGO) test
+	# dh-cargo-built-using is horribly broken and does not support our embedded aws-lc library.
+	# it would normally be run by dh_auto_test
+
+override_dh_auto_install:
+	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki-cli_$(VERSION) $(CARGO) install --locked --path upki-cli
+	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki-mirror_$(VERSION) $(CARGO) install --locked --path upki-mirror
+	# dh-cargo-built-using is horribly broken and does not support our embedded aws-lc library.
+	env debian/bin/dh-cargo-built-using upki
+	env debian/bin/dh-cargo-built-using upki-mirror
+	help2man --no-info target/*/release/upki > debian/upki.1
+	# upki-mirror manual page is broken
+	# help1man --no-info target/*/release/upki-mirror > debian/upki-mirror.1
+	#
+.PHONY: debian/copyright

@@ -1,0 +1,2 @@
+target/*/release/intermediates usr/libexec/upki-mirror/
+target/*/release/mozilla-crlite usr/libexec/upki-mirror/

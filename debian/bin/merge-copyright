@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+"""Merge debian/copyright.in.d/<crate> files into a single debian/copyright.
+
+Each file in debian/copyright.in.d/ is a complete DEP-5 (machine-readable
+copyright format 1.0) file describing one vendored crate.  It contains:
+
+  * a leading header stanza (Format:/Source:/Comment:) - discarded here, the
+    merged file uses a single global header (debian/copyright.header);
+  * one or more "Files:" stanzas (with Copyright: and License: <expression>);
+  * zero or more stand-alone "License: <name>" stanzas carrying the full
+    license text.
+
+This script concatenates all the Files: stanzas and deduplicates the
+stand-alone license-text stanzas.  Two stand-alone stanzas with the same short
+name are considered identical when their text is equal after collapsing all
+whitespace.  When a single short name has several genuinely different texts,
+the variant used by the most crates keeps the plain short name and every other
+variant is renamed "<name>-<crate>[-<crate>...]" after the crates that use it;
+references to those names in the affected crate's Files: stanzas are rewritten
+to match.  License short names of the SPDX exception form "<lic> with <abbrev>
+exception" are never renamed (a suffix would break that grammar); their
+differing copies are collapsed into one stanza.
+
+The stand-alone License: paragraphs from the header file are deduplicated and
+sorted together with the per-crate ones.
+
+Empty files in copyright.in.d/ (zero bytes) represent crates that were
+filtered out by cargo-vendor-filterer and contain no vendored source.  All
+such crates are collected into a single "Files:" stanza listing every filtered
+glob (one per continuation line), with the explanatory license text embedded
+directly in the License: field of that stanza.  No stand-alone License:
+paragraph is emitted for "filtered".
+
+Parsing and serialisation use python3-debian's debian.copyright module.
+
+Mirrors the historical "debian/copyright" make target, but operates on the
+auto-generated copyright.in.d/ tree (one full copyright file per crate).
+"""
+
+import argparse
+import os
+import re
+import sys
+from collections import defaultdict
+
+from debian import copyright
+
+
+# Sentinel "crate" used for stand-alone License: stanzas that come from the
+# header file rather than a vendored crate.  These are package-wide licenses,
+# so they get no "Used by: <crate>" comment and are never renamed.
+HEADER_SOURCE = None
+
+
+# --------------------------------------------------------------------------
+# License expression handling
+# --------------------------------------------------------------------------
+
+# A stand-alone license whose short name matches "<license> with <abbrev>
+# exception" (the SPDX/dpkg-copyright exception form, e.g.
+# "Apache-2 with LLVM exception").  Such a name must not be given a "-<crate>"
+# suffix: the dpkg-copyright grammar parses "with <abbrev> exception" as an
+# operator clause, and a suffix would break it.
+_EXCEPTION_RE = re.compile(r"\bwith\b.*\bexception$", re.IGNORECASE)
+
+
+def is_exception_license(name):
+    return bool(_EXCEPTION_RE.search(name))
+
+
+def rewrite_license_expr(expr, rename):
+    """Rewrite the names in a license expression using the rename mapping.
+
+    rename maps an original short name to its (possibly suffixed) target name.
+    The boolean operators (and/or, and, or), the disambiguating comma and any
+    parentheses are preserved; everything between them is a license name that
+    may be remapped.
+    """
+    if not rename:
+        return expr
+    tokens = re.split(r"(\band/or\b|\bor\b|\band\b|,|[()])", expr,
+                      flags=re.IGNORECASE)
+    out = []
+    for tok in tokens:
+        low = tok.strip().lower()
+        if low in ("or", "and", "and/or") or tok in (",", "(", ")"):
+            out.append(tok)
+            continue
+        stripped = tok.strip()
+        if stripped and stripped in rename:
+            lead = tok[: len(tok) - len(tok.lstrip())]
+            trail = tok[len(tok.rstrip()):]
+            out.append(lead + rename[stripped] + trail)
+        else:
+            out.append(tok)
+    return "".join(out)
+
+
+def normalize_text(text):
+    """Collapse all whitespace and remove special characters for comparison."""
+    collapsed = re.sub(r"\s+", " ", text or "").strip()
+    return re.sub(r"[^a-z0-9 ]", "", collapsed.lower())
+
+
+def normalize_name(name):
+    """Normalise a license short name for comparison (case- and punctuation-insensitive)."""
+    collapsed = re.sub(r"\s+", " ", (name or "")).strip()
+    return re.sub(r"[^a-z0-9 ]", "", collapsed.lower())
+
+
+# --------------------------------------------------------------------------
+# Main merge logic
+# --------------------------------------------------------------------------
+
+def load_copyright(path):
+    """Parse a DEP-5 file, tolerating the partial per-crate fragments."""
+    with open(path, encoding="utf-8") as fh:
+        return copyright.Copyright(fh, strict=False)
+
+
+def normalize_copyright(value):
+    """Normalise a folded Copyright value into clean, folded line content.
+
+    debian.copyright stores the raw folded text (continuation lines keep their
+    leading space; an empty synopsis yields a leading blank line).  Strip the
+    structural single-space indent, drop blank lines, then re-fold as one
+    holder per line (first plain, the rest with a single leading space) so the
+    value re-dumps with no dangling "Copyright:" synopsis and re-parses
+    cleanly via FilesParagraph.create.
+    """
+    holders = []
+    for raw in str(value).split("\n"):
+        stripped = raw[1:] if raw.startswith(" ") else raw
+        if stripped.strip():
+            holders.append(stripped.rstrip())
+    if not holders:
+        return ""
+    return "\n".join([holders[0]] + [" " + h for h in holders[1:]])
+
+
+def copy_files_paragraph(fp, license_=None):
+    """Build a fresh FilesParagraph (detached) from an existing one."""
+    new = copyright.FilesParagraph.create(
+        list(fp.files), normalize_copyright(fp.copyright),
+        license_ if license_ is not None else fp.license)
+    if fp.comment:
+        new.comment = fp.comment
+    return new
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--header", default="debian/copyright.header",
+                    help="header file to prepend (default: %(default)s)")
+    ap.add_argument("--in-dir", default="debian/copyright.in.d",
+                    help="directory of per-crate copyright files "
+                         "(default: %(default)s)")
+    ap.add_argument("-o", "--output", default="-",
+                    help="output file (default: stdout)")
+    args = ap.parse_args()
+
+    if not os.path.isdir(args.in_dir):
+        ap.error("input directory not found: %s" % args.in_dir)
+
+    crate_names = sorted(os.listdir(args.in_dir))
+
+    # Separate empty (zero-byte) crate files from non-empty ones.
+    # Empty files represent crates that were filtered out by
+    # cargo-vendor-filterer; they carry no real source and need only a
+    # synthetic placeholder stanza rather than a full copyright declaration.
+    FILTERED_LICENSE_NAME = "filtered"
+    FILTERED_LICENSE_TEXT = (
+        "This crate was filtered out by cargo-vendor-filterer and is not\n"
+        "included in the source package.  No source files from this crate\n"
+        "are present; this entry is a placeholder only."
+    )
+
+    empty_crates = []
+    nonempty_crates = []
+    for crate in crate_names:
+        path = os.path.join(args.in_dir, crate)
+        if not os.path.isfile(path):
+            continue
+        if os.path.getsize(path) == 0:
+            empty_crates.append(crate)
+        else:
+            nonempty_crates.append(crate)
+
+    # files_paragraphs: list of (crate, FilesParagraph) for every Files stanza.
+    files_paragraphs = []
+    # standalone[norm_name] -> { normalized_text: {"text": original_text,
+    #                                               "crates": [crate, ...]} }
+    standalone = defaultdict(dict)
+    # standalone_names[norm_name] -> canonical (first-seen) original short name
+    standalone_names = {}
+
+    def ingest_license_paragraph(lic, crate):
+        """Record a stand-alone License paragraph for deduplication."""
+        if not (lic.text and lic.text.strip()):
+            # Bare short-name reference with no text - nothing to dedup.
+            return
+        norm = normalize_text(lic.text)
+        norm_key = normalize_name(lic.synopsis)
+        if norm_key not in standalone_names:
+            standalone_names[norm_key] = lic.synopsis
+        bucket = standalone[norm_key]
+        if norm not in bucket:
+            bucket[norm] = {"text": lic.text, "crates": []}
+        bucket[norm]["crates"].append(crate)
+
+    # The filtered stanza is serialised as a raw string (bypassing the
+    # python3-debian library) so the Files: field has exactly one glob per
+    # line, which is what we want for readability.  It is injected into the
+    # final output just after the header block (see below).
+
+    # The header file contributes its header stanza (kept as the output's
+    # Header) and any Files stanzas; its stand-alone License stanzas are fed
+    # through the dedup pipeline so they sort with the per-crate ones.
+    header_cp = load_copyright(args.header)
+    out = copyright.Copyright()
+    # Copy header fields onto the output's own Header object.  (Assigning the
+    # source Header directly would alias an object bound to header_cp and lose
+    # fields once the output is mutated.)
+    for attr in ("upstream_name", "upstream_contact", "source",
+                 "disclaimer", "comment", "license", "copyright"):
+        value = getattr(header_cp.header, attr, None)
+        if value is not None:
+            setattr(out.header, attr, value)
+    for fp in header_cp.all_files_paragraphs():
+        files_paragraphs.append((HEADER_SOURCE, fp))
+    for lp in header_cp.all_license_paragraphs():
+        ingest_license_paragraph(lp.license, HEADER_SOURCE)
+
+    for crate in nonempty_crates:
+        path = os.path.join(args.in_dir, crate)
+        cp = load_copyright(path)
+        for fp in cp.all_files_paragraphs():
+            files_paragraphs.append((crate, fp))
+        for lp in cp.all_license_paragraphs():
+            ingest_license_paragraph(lp.license, crate)
+
+    # ----------------------------------------------------------------------
+    # Assign final names to each (short-name, text) variant.
+    #   * single variant      -> keep the plain short name;
+    #   * multiple variants    -> the most-used keeps the plain name; the rest
+    #     become "<name>-<crate>[-<crate>...]" (except exception licenses,
+    #     which are never suffixed and so are collapsed to one stanza).
+    # rename_per_crate[crate] maps original-name -> assigned-name for the
+    # variants that this crate actually uses.
+    # ----------------------------------------------------------------------
+    rename_per_crate = defaultdict(dict)
+    # final_licenses: list of (assigned_name, text, comment_or_None).
+    final_licenses = []
+
+    def crate_comment(crates):
+        """A 'Used by:' comment listing the real crates (header excluded)."""
+        real = sorted(c for c in crates if c is not HEADER_SOURCE)
+        return "Used by: " + ", ".join(real) if real else None
+
+    for norm_key in sorted(standalone):
+        name = standalone_names[norm_key]
+        variants = standalone[norm_key]
+        # Most-used first; ties broken by first crate name for determinism.
+        ordered = sorted(
+            variants.values(),
+            key=lambda v: (-len(v["crates"]),
+                           sorted(str(c) for c in v["crates"])[0]),
+        )
+
+        if is_exception_license(name) and len(ordered) > 1:
+            # "<lic> with <abbrev> exception" names cannot carry a suffix, so
+            # collapse the (wording/whitespace-different) copies into one
+            # stanza, keeping the most-used text.
+            all_crates = [c for v in ordered for c in v["crates"]]
+            final_licenses.append(
+                (name, ordered[0]["text"], crate_comment(all_crates)))
+            continue
+
+        for idx, variant in enumerate(ordered):
+            crates = variant["crates"]
+            real_crates = sorted(c for c in crates if c is not HEADER_SOURCE)
+            if len(ordered) == 1 or idx == 0 or not real_crates:
+                assigned = name
+            else:
+                assigned = "%s-%s" % (name, "-".join(real_crates))
+                for crate in real_crates:
+                    rename_per_crate[crate][name] = assigned
+            final_licenses.append(
+                (assigned, variant["text"], crate_comment(crates)))
+
+    # ----------------------------------------------------------------------
+    # Sort the Files paragraphs by their first pattern (so each crate's
+    # wildcard root comes first), giving stable, readable output.
+    # ----------------------------------------------------------------------
+    def files_sort_key(item):
+        crate, fp = item
+        files = fp.files or ("",)
+        return (files[0], "" if crate is HEADER_SOURCE else crate)
+
+    files_paragraphs.sort(key=files_sort_key)
+
+    # ----------------------------------------------------------------------
+    # Assemble the output Copyright document and serialise it.  Each source
+    # paragraph is copied into a detached paragraph (the originals are still
+    # bound to their parsed documents), rewriting renamed license references
+    # for crates whose stand-alone license was suffixed.
+    # ----------------------------------------------------------------------
+    for crate, fp in files_paragraphs:
+        rename = rename_per_crate.get(crate)
+        new_license = None
+        if rename:
+            new_synopsis = rewrite_license_expr(fp.license.synopsis, rename)
+            if new_synopsis != fp.license.synopsis:
+                new_license = copyright.License(new_synopsis,
+                                                text=fp.license.text)
+        out.add_files_paragraph(copy_files_paragraph(fp, new_license))
+
+    for assigned, text, comment in sorted(final_licenses, key=lambda x: x[0]):
+        lp = copyright.LicenseParagraph.create(
+            copyright.License(assigned, text=text))
+        if comment:
+            lp.comment = comment
+        out.add_license_paragraph(lp)
+
+    output = out.dump()
+
+    # Inject the filtered-crates stanza immediately after the header block
+    # (the first stanza in the output, terminated by a blank line).  The raw
+    # string is built here so Files: has one glob per continuation line.
+    if empty_crates:
+        globs = ["rust-vendor/%s/*" % c for c in empty_crates]
+        files_value = globs[0] + "".join("\n " + g for g in globs[1:])
+        license_body = "".join(
+            "\n " + line for line in FILTERED_LICENSE_TEXT.splitlines()
+        )
+        filtered_stanza = (
+            "Files: %s\n"
+            "Copyright: Upstream authors (not included in source package)\n"
+            "License: %s%s\n"
+        ) % (files_value, FILTERED_LICENSE_NAME, license_body)
+
+        # Insert after the first blank-line-terminated block (the DEP-5 header).
+        first_blank = output.find("\n\n")
+        if first_blank != -1:
+            output = (output[:first_blank + 2]
+                      + filtered_stanza
+                      + "\n"
+                      + output[first_blank + 2:])
+        else:
+            output = output + "\n" + filtered_stanza
+
+    if args.output == "-":
+        sys.stdout.write(output)
+    else:
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(output)
+
+
+if __name__ == "__main__":
+    main()
