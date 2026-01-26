@@ -1,0 +1,20 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 28 Jan 2026 17:03:54 +0100
+Subject: aws-lc-sys: advertise embedded static library to dh-cargo
+
+---
+ rust-vendor/aws-lc-sys/builder/main.rs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/rust-vendor/aws-lc-sys/builder/main.rs b/rust-vendor/aws-lc-sys/builder/main.rs
+index 24fc883..571da66 100644
+--- a/rust-vendor/aws-lc-sys/builder/main.rs
++++ b/rust-vendor/aws-lc-sys/builder/main.rs
+@@ -831,6 +831,7 @@ fn main() {
+ 
+     println!("cargo:rerun-if-changed=builder/");
+     println!("cargo:rerun-if-changed=aws-lc/");
++    println!("dh-cargo:deb-built-using=aws_lc_0_36_0_crypto=0={}", env::var("CARGO_MANIFEST_DIR").unwrap());
+ }
+ 
+ fn setup_include_paths(out_dir: &Path, manifest_dir: &Path) -> PathBuf {
