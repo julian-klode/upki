@@ -1,0 +1,29 @@
+[dependencies.quote]
+version = "1"
+
+[dependencies.syn]
+features = ["full"]
+version = "2"
+
+[lib]
+name = "jni_sys_macros"
+path = "src/lib.rs"
+proc-macro = true
+
+[package]
+authors = ["Robert Bragg <robert@sixbynine.org>"]
+autobenches = false
+autobins = false
+autoexamples = false
+autolib = false
+autotests = false
+categories = ["external-ffi-bindings"]
+description = "Macros for jni-sys crate"
+documentation = "https://docs.rs/jni-sys-macros"
+edition = "2021"
+keywords = ["java", "jni"]
+license = "MIT OR Apache-2.0"
+name = "jni-sys-macros"
+readme = "README.md"
+repository = "https://github.com/jni-rs/jni-sys"
+version = "0.4.1"

@@ -1,0 +1,139 @@
+[dependencies.bytes]
+optional = true
+version = "1"
+
+[dependencies.bytes_05]
+optional = true
+package = "bytes"
+version = "0.5"
+
+[dependencies.futures-core-03]
+default-features = false
+optional = true
+package = "futures-core"
+version = "0.3.1"
+
+[dependencies.futures-io-03]
+default-features = false
+optional = true
+package = "futures-io"
+version = "0.3.1"
+
+[dependencies.memchr]
+default-features = false
+version = "2.3"
+
+[dependencies.pin-project-lite]
+optional = true
+version = "0.2"
+
+[dependencies.regex]
+optional = true
+version = "1"
+
+[dependencies.tokio-02-dep]
+default-features = false
+features = ["io-util"]
+optional = true
+package = "tokio"
+version = "0.2.3"
+
+[dependencies.tokio-03-dep]
+default-features = false
+optional = true
+package = "tokio"
+version = "0.3"
+
+[dependencies.tokio-dep]
+default-features = false
+optional = true
+package = "tokio"
+version = "1"
+
+[dependencies.tokio-util]
+default-features = false
+features = ["codec"]
+optional = true
+version = "0.7"
+
+[dev-dependencies.async-std]
+version = "1"
+
+[dev-dependencies.bytes]
+version = "1"
+
+[dev-dependencies.bytes_05]
+package = "bytes"
+version = "0.5"
+
+[dev-dependencies.criterion]
+default-features = false
+version = "0.3"
+
+[dev-dependencies.futures-03-dep]
+package = "futures"
+version = "0.3.1"
+
+[dev-dependencies.once_cell]
+version = "1.0"
+
+[dev-dependencies.partial-io]
+features = ["tokio", "quickcheck"]
+version = "0.3"
+
+[dev-dependencies.quick-error]
+version = "1.0"
+
+[dev-dependencies.quickcheck]
+version = "0.6"
+
+[dev-dependencies.tokio-02-dep]
+features = ["fs", "io-driver", "io-util", "macros"]
+package = "tokio"
+version = "0.2"
+
+[dev-dependencies.tokio-03-dep]
+features = ["fs", "macros", "rt-multi-thread"]
+package = "tokio"
+version = "0.3"
+
+[dev-dependencies.tokio-dep]
+features = ["fs", "macros", "rt", "rt-multi-thread", "io-util"]
+package = "tokio"
+version = "1"
+
+[features]
+alloc = []
+default = ["std"]
+futures-03 = ["pin-project", "std", "futures-core-03", "futures-io-03", "pin-project-lite"]
+mp4 = []
+pin-project = ["pin-project-lite"]
+std = ["memchr/std", "bytes", "alloc"]
+tokio = ["tokio-dep", "tokio-util/io", "futures-core-03", "pin-project-lite"]
+tokio-02 = ["pin-project", "std", "tokio-02-dep", "futures-core-03", "pin-project-lite", "bytes_05"]
+tokio-03 = ["pin-project", "std", "tokio-03-dep", "futures-core-03", "pin-project-lite"]
+
+[lib]
+name = "combine"
+path = "src/lib.rs"
+
+[package]
+authors = ["Markus Westerlind <marwes91@gmail.com>"]
+categories = ["parsing", "no-std"]
+description = "Fast parser combinators on arbitrary streams with zero-copy support."
+documentation = "https://docs.rs/combine"
+edition = "2018"
+keywords = ["parser", "parsing", "combinators", "ll"]
+license = "MIT"
+name = "combine"
+readme = "README.md"
+repository = "https://github.com/Marwes/combine"
+version = "4.6.7"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[profile.bench]
+codegen-units = 1
+lto = true

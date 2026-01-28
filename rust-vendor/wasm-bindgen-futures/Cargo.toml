@@ -1,0 +1,62 @@
+[dependencies.js-sys]
+default-features = false
+version = "=0.3.99"
+
+[dependencies.wasm-bindgen]
+default-features = false
+version = "=0.2.122"
+
+[features]
+default = ["std"]
+futures-core-03-stream = ["js-sys/futures-core-03-stream"]
+std = ["wasm-bindgen/std", "js-sys/std"]
+
+[lib]
+name = "wasm_bindgen_futures"
+path = "src/lib.rs"
+
+[lints.clippy]
+large_enum_variant = "allow"
+new_without_default = "allow"
+overly_complex_bool_expr = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
+uninlined_format_args = "warn"
+
+[lints.rust]
+unused_lifetimes = "warn"
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ["cfg(wasm_bindgen_unstable_test_coverage)", "cfg(wasm_bindgen_use_js_sys)", "cfg(xxx_debug_only_print_generated_code)"]
+level = "warn"
+priority = 0
+
+[package]
+authors = ["The wasm-bindgen Developers"]
+autobenches = false
+autobins = false
+autoexamples = false
+autolib = false
+autotests = false
+description = "Bridging the gap between Rust Futures and JavaScript Promises"
+documentation = "https://docs.rs/wasm-bindgen-futures"
+edition = "2021"
+homepage = "https://wasm-bindgen.github.io/wasm-bindgen/"
+include = ["/LICENSE-*", "/src"]
+license = "MIT OR Apache-2.0"
+name = "wasm-bindgen-futures"
+readme = "README.md"
+repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/futures"
+rust-version = "1.77"
+version = "0.4.72"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures-channel]
+version = "0.3"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures-lite]
+default-features = false
+version = "2"

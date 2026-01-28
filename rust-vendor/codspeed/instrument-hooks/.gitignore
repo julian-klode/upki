@@ -1,0 +1,10 @@
+.zig-cache
+zig-out
+target/
+./main
+
+**/build
+**/cmake-build
+
+# Bazel output
+**/bazel-*

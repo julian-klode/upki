@@ -1,0 +1,33 @@
+[dependencies.jni_sys_04]
+package = "jni-sys"
+version = "0.4"
+
+[dev-dependencies.thiserror]
+version = "2"
+
+[features]
+default = []
+
+[lib]
+name = "jni_sys"
+path = "src/lib.rs"
+
+[package]
+authors = ["Steven Fackler <sfackler@gmail.com>"]
+autobenches = false
+autobins = false
+autoexamples = false
+autolib = false
+autotests = false
+categories = ["external-ffi-bindings"]
+description = "Rust definitions corresponding to jni.h"
+documentation = "https://docs.rs/jni-sys/0.3.0"
+edition = "2021"
+exclude = ["/.github", "/tests"]
+keywords = ["java", "jni"]
+license = "MIT OR Apache-2.0"
+name = "jni-sys"
+readme = "README.md"
+repository = "https://github.com/jni-rs/jni-sys"
+rust-version = "1.77.0"
+version = "0.3.1"

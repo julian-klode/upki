@@ -1,0 +1,21 @@
+[package]
+name = "webpki-ccadb"
+version = "0.2.1"
+edition = { workspace = true }
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+homepage = { workspace = true }
+repository = { workspace = true }
+description = "Common CA Database (CCADB) interface for use with webpki-roots"
+
+[dependencies]
+chrono = { workspace = true }
+csv = { workspace = true }
+hex = { workspace = true }
+num-bigint = { workspace = true }
+pki-types = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+webpki = { workspace = true }
+x509-parser = { workspace = true }
+yasna = { workspace = true }
