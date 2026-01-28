@@ -1,0 +1,64 @@
+[build-dependencies.walkdir]
+version = "2"
+
+[dependencies.cesu8]
+version = "1.1.0"
+
+[dependencies.cfg-if]
+version = "1.0.0"
+
+[dependencies.combine]
+version = "4.1.0"
+
+[dependencies.java-locator]
+optional = true
+version = "0.1"
+
+[dependencies.jni-sys]
+version = "0.3.0"
+
+[dependencies.libloading]
+optional = true
+version = "0.7"
+
+[dependencies.log]
+version = "0.4.4"
+
+[dependencies.thiserror]
+version = "1.0.20"
+
+[dev-dependencies.assert_matches]
+version = "1.5.0"
+
+[dev-dependencies.lazy_static]
+version = "1"
+
+[dev-dependencies.rusty-fork]
+version = "0.3.0"
+
+[features]
+default = []
+invocation = ["java-locator", "libloading"]
+
+[package]
+authors = ["Josh Chase <josh@prevoty.com>"]
+categories = ["api-bindings"]
+description = "Rust bindings to the JNI"
+documentation = "https://docs.rs/jni"
+edition = "2018"
+keywords = ["ffi", "jni", "java"]
+license = "MIT/Apache-2.0"
+name = "jni"
+readme = "README.md"
+repository = "https://github.com/jni-rs/jni-rs"
+version = "0.21.1"
+
+[package.metadata.docs.rs]
+features = ["invocation"]
+
+[target."cfg(windows)".dependencies.windows-sys]
+features = ["Win32_Globalization"]
+version = "0.45.0"
+
+[target."cfg(windows)".dev-dependencies.bytemuck]
+version = "1.13.0"

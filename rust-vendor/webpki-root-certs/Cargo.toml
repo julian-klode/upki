@@ -1,0 +1,45 @@
+[dependencies.pki-types]
+default-features = false
+package = "rustls-pki-types"
+version = "1.8"
+
+[dev-dependencies.hex]
+version = "0.4.3"
+
+[dev-dependencies.percent-encoding]
+version = "2.3"
+
+[dev-dependencies.ring]
+version = "0.17.0"
+
+[dev-dependencies.tokio]
+features = ["macros", "rt-multi-thread"]
+version = "1"
+
+[dev-dependencies.webpki]
+features = ["alloc"]
+package = "rustls-webpki"
+version = "0.103"
+
+[dev-dependencies.x509-parser]
+version = "0.17.0"
+
+[lib]
+name = "webpki_root_certs"
+path = "src/lib.rs"
+
+[package]
+autobenches = false
+autobins = false
+autoexamples = false
+autolib = false
+autotests = false
+description = "Mozilla trusted certificate authorities in self-signed X.509 format for use with crates other than webpki"
+edition = "2021"
+homepage = "https://github.com/rustls/webpki-roots"
+license = "CDLA-Permissive-2.0"
+name = "webpki-root-certs"
+readme = "README.md"
+repository = "https://github.com/rustls/webpki-roots"
+rust-version = "1.64"
+version = "1.0.5"
