@@ -1,1 +1,4 @@
+debian/config.toml etc/upki/
+debian/upki-fetch.service  usr/lib/systemd/system/
+debian/upki-fetch.timer    usr/lib/systemd/system/
 target/*/release/upki usr/bin/
