@@ -4,6 +4,7 @@ Priority: optional
 Build-Depends: debhelper-compat (= 12),
                dh-cargo (>= 24),
                dh-sequence-bash-completion,
+               ca-certificates,
                cargo:native,
                help2man,
                rustc:native
@@ -16,7 +17,8 @@ Rules-Requires-Root: no
 Package: upki
 Architecture: any
 Multi-Arch: foreign
-Depends: ${cargo:Depends},
+Depends: ca-certificates,
+         ${cargo:Depends},
          ${misc:Depends},
          ${shlibs:Depends}
 Recommends: ${cargo:Recommends}
