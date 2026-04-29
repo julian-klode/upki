@@ -66,6 +66,11 @@ override_dh_auto_configure:
 	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki_$(VERSION) $(CARGO) prepare-debian $(CARGO_VENDOR_DIR)
 	/usr/share/cargo/bin/dh-cargo-vendored-sources
 
+execute_after_dh_install:
+	# the below step is automatic with debhelper >= 14
+	echo "Installing service users and groups..."
+	dh_installsysusers
+
 override_dh_auto_test:
 	#$(CARGO) test
 	# dh-cargo-built-using is horribly broken and does not support our embedded aws-lc library.
