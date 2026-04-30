@@ -1,0 +1,22 @@
+#!/bin/sh
+
+config_path=/etc/xdg/upki/config.toml
+
+adjust_fetch_url() {
+    url="$1"
+    sed -i \
+        -e "s|^fetch-url = ".*"|fetch-url = \"${url}\"|" \
+    ${config_path}
+}
+
+adjust_cache_dir() {
+    dir="$1"
+    sed -i \
+        -e "s|^cache-dir = ".*"|cache-dir = \"${dir}\"|" \
+    ${config_path}
+}
+
+log()  { printf '[INFO] %s\n' "$*"; }
+ok()   { printf '[ OK ] %s\n' "$*"; }
+err()  { printf '[FAIL] %s\n' "$*" >&2; }
+section() { printf '\n==== %s ====\n' "$*"; }

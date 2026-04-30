@@ -1,0 +1,38 @@
+#!/bin/sh
+
+[ "${DEBUG:-}" = "1" ] && set -x
+set -e
+
+. debian/tests/util
+
+section "Starting CRL server"
+cd debian/tests/data
+python3 -m http.server 8000 2>/dev/null &
+server_pid=$!
+log "Server PID: ${server_pid}"
+
+sleep 1
+
+section "Restarting upki-fetch"
+adjust_fetch_url "http://localhost:8000/"
+systemctl restart upki-fetch
+ok "Service restarted"
+
+section "Waiting for fetch"
+sleep 1
+
+section "Checking cached files"
+files="manifest.json filter1.filter"
+for file in $files; do
+    if [ ! -f "/var/cache/upki/revocation/${file}" ]; then
+        err "${file} not found in cache"
+        exit 1
+    else
+        ok "${file} found"
+    fi
+done
+
+section "Cleaning up"
+kill "${server_pid}"
+wait "${server_pid}" 2>/dev/null || true
+ok "Server stopped"

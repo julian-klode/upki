@@ -1,0 +1,5 @@
+Tests: upki-fetch
+Depends: python3,
+         upki
+Restrictions: isolation-container,
+              needs-root
