@@ -18,6 +18,7 @@ Package: upki
 Architecture: any
 Multi-Arch: foreign
 Depends: ca-certificates,
+         systemd (>= 250),
          ${cargo:Depends},
          ${misc:Depends},
          ${shlibs:Depends}
