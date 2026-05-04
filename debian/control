@@ -1,7 +1,7 @@
 Source: upki
 Section: utils
 Priority: optional
-Build-Depends: debhelper-compat (= 12),
+Build-Depends: debhelper-compat (= 13),
                dh-cargo (>= 24),
                dh-sequence-bash-completion,
                ca-certificates,
