@@ -5,12 +5,12 @@ Source: https://github.com/rustls/upki
 
 Files: *
 Copyright: upki developers
-License: Apache-2.0 or Expat
+License: Apache-2 or Expat
 
 Files: debian/*
 Copyright:
  2026 Canonical Ltd
-License: Apache-2.0 or Expat
+License: Apache-2 or Expat
 
 License: Expat
  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,6 +31,6 @@ License: Expat
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 
-License: Apache-2.0
+License: Apache-2
  On Debian systems, the full text of the Apache License Version 2.0
  can be found in the file `/usr/share/common-licenses/Apache-2.0'.

@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://github.com/mitsuhiko/similar-asserts
+
+Files: rust-vendor/similar-asserts/*
+Copyright: Armin Ronacher <armin.ronacher@active-4.com>
+License: Apache-2
+
+License: Apache-2
+ On Debian systems, the full text of the Apache License Version 2.0
+ can be found in the file `/usr/share/common-licenses/Apache-2.0`.

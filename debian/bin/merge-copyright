@@ -75,6 +75,10 @@ def rewrite_license_expr(expr, rename):
     The boolean operators (and/or, and, or), the disambiguating comma and any
     parentheses are preserved; everything between them is a license name that
     may be remapped.
+
+    After renaming, any remaining parentheses are converted to DEP-5 comma-
+    separated form since the grammar does not support parentheses directly:
+    '(A or B) and C' becomes 'A or B, and C'.
     """
     if not rename:
         return expr
@@ -93,12 +97,20 @@ def rewrite_license_expr(expr, rename):
             out.append(lead + rename[stripped] + trail)
         else:
             out.append(tok)
-    return "".join(out)
+    result = "".join(out)
+    if "(" in result or ")" in result:
+        result = re.sub(
+            r"\(\s*([^()]+?)\s*\)\s+(and/or|and|or)\s+",
+            r"\1, \2 ", result)
+        result = result.replace("(", "").replace(")", "")
+    return result
 
 
 def normalize_text(text):
     """Collapse all whitespace and remove special characters for comparison."""
-    collapsed = re.sub(r"\s+", " ", text or "").strip()
+    text = text or ""
+    text = re.sub(r"^\s*\d+\.", "", text, flags=re.MULTILINE)
+    collapsed = re.sub(r"\s+", " ", text).strip()
     return re.sub(r"[^a-z0-9 ]", "", collapsed.lower())
 
 
@@ -262,12 +274,20 @@ def main():
     for norm_key in sorted(standalone):
         name = standalone_names[norm_key]
         variants = standalone[norm_key]
-        # Most-used first; ties broken by first crate name for determinism.
-        ordered = sorted(
-            variants.values(),
-            key=lambda v: (-len(v["crates"]),
-                           sorted(str(c) for c in v["crates"])[0]),
-        )
+
+        def _real_count(v):
+            return len([c for c in v["crates"] if c is not HEADER_SOURCE])
+
+        def _sort_key(v):
+            return (-_real_count(v),
+                    sorted(str(c) for c in v["crates"]
+                           if c is not HEADER_SOURCE)[0]
+                    if _real_count(v) > 0 else "")
+
+        # Most-used first (by real-crate count); ties broken by first real
+        # crate name for determinism.  Variants with only HEADER_SOURCE sort
+        # last (tiebroken by empty string).
+        ordered = sorted(variants.values(), key=_sort_key)
 
         if is_exception_license(name) and len(ordered) > 1:
             # "<lic> with <abbrev> exception" names cannot carry a suffix, so
@@ -281,10 +301,17 @@ def main():
         for idx, variant in enumerate(ordered):
             crates = variant["crates"]
             real_crates = sorted(c for c in crates if c is not HEADER_SOURCE)
-            if len(ordered) == 1 or idx == 0 or not real_crates:
+            if len(ordered) == 1 or idx == 0:
                 assigned = name
+            elif not real_crates:
+                # Header-only variant that is not the most-used: skip
+                # entirely.  The header's Files stanzas reference the plain
+                # name, which is carried by the most-used variant.
+                continue
             else:
-                assigned = "%s-%s" % (name, "-".join(real_crates))
+                # Use the alphabetically first crate as suffix for a shorter,
+                # deterministic name.
+                assigned = "%s-%s" % (name, real_crates[0])
                 for crate in real_crates:
                     rename_per_crate[crate][name] = assigned
             final_licenses.append(
@@ -297,7 +324,9 @@ def main():
     def files_sort_key(item):
         crate, fp = item
         files = fp.files or ("",)
-        return (files[0], "" if crate is HEADER_SOURCE else crate)
+        # Header paragraphs (HEADER_SOURCE) sort before all vendored crates.
+        return (0 if crate is HEADER_SOURCE else 1, files[0],
+                "" if crate is HEADER_SOURCE else crate)
 
     files_paragraphs.sort(key=files_sort_key)
 
@@ -326,9 +355,10 @@ def main():
 
     output = out.dump()
 
-    # Inject the filtered-crates stanza immediately after the header block
-    # (the first stanza in the output, terminated by a blank line).  The raw
-    # string is built here so Files: has one glob per continuation line.
+    # Inject the filtered-crates stanza after the DEP-5 header stanza and all
+    # Files: paragraphs from copyright.header, but before any vendored-crate
+    # Files: paragraphs.  The raw string is built here so Files: has one glob
+    # per continuation line.
     if empty_crates:
         globs = ["rust-vendor/%s/*" % c for c in empty_crates]
         files_value = globs[0] + "".join("\n " + g for g in globs[1:])
@@ -341,15 +371,21 @@ def main():
             "License: %s%s\n"
         ) % (files_value, FILTERED_LICENSE_NAME, license_body)
 
-        # Insert after the first blank-line-terminated block (the DEP-5 header).
-        first_blank = output.find("\n\n")
-        if first_blank != -1:
-            output = (output[:first_blank + 2]
-                      + filtered_stanza
-                      + "\n"
-                      + output[first_blank + 2:])
-        else:
-            output = output + "\n" + filtered_stanza
+        # Count stanzas to skip: 1 (DEP-5 header) + number of Files: paragraphs
+        # contributed by copyright.header.
+        n_header_files = sum(1 for c, _ in files_paragraphs if c is HEADER_SOURCE)
+        skip = 1 + n_header_files
+
+        # Walk past 'skip' double-newline boundaries to find the insertion point.
+        pos = 0
+        for _ in range(skip):
+            nxt = output.find("\n\n", pos)
+            if nxt == -1:
+                pos = len(output)
+                break
+            pos = nxt + 2
+
+        output = output[:pos] + filtered_stanza + "\n" + output[pos:]
 
     if args.output == "-":
         sys.stdout.write(output)

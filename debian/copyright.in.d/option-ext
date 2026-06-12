@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://github.com/soc/option-ext
+
+Files: rust-vendor/option-ext/*
+Copyright: Simon Ochsenreither <simon@ochsenreither.de>
+License: MPL-2
+
+License: MPL-2
+ On Debian systems, the full text of the Mozilla Public License 2.0
+ can be found in the file `/usr/share/common-licenses/MPL-2.0`.
