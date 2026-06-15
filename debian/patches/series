@@ -1,2 +1,3 @@
 workspace-exclude.patch
 aws-lc.patch
+release-lto.patch

@@ -1,0 +1,32 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Mon, 15 Jun 2026 13:45:00 +0100
+Subject: Enable full LTO and opt-level z in the release profile
+
+Set lto = true and opt-level = "z" in the release profile to
+enable full link-time optimization and optimize aggressively for binary
+size. This reduces the size of the resulting shared libraries and
+executables.
+
+Origin: vendor, Ubuntu
+Forwarded: not-needed
+Applied-Upstream: not-yet
+Last-Update: 2026-06-15
+---
+ Cargo.toml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 24773b4..4821449 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -69,6 +69,10 @@ unused_qualifications = "warn"
+ [patch.crates-io]
+ clubcard-crlite = { git = "https://github.com/mozilla/clubcard-crlite", rev = "83d4afe61d511fe88e8bf22e8a71c3b582536e69" }
+ 
++[profile.release]
++lto = true
++opt-level = "z"
++
+ [profile.dist]
+ inherits = "release"
+ lto = "thin"
