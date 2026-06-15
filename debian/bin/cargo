@@ -78,7 +78,9 @@ ARCHES = "DEB_HOST_GNU_TYPE DEB_HOST_RUST_TYPE"
 SYSTEM_REGISTRY = "/usr/share/cargo/registry"
 # RUST_VERSION gets replaced with the actual Rust version during
 # preconfiguration
-CARGO_PATH = "/usr/lib/rust-1.93/bin/cargo"
+# XXX(upki): use /usr/bin/cargo, not the versioned path, so that
+# system cargo-c plugins (cargo-cbuild, cargo-cinstall) are found
+CARGO_PATH = "/usr/bin/cargo"
 
 def log(*args):
     print("debian cargo wrapper:", *args, file=sys.stderr, flush=True)
