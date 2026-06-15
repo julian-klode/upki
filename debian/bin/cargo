@@ -162,6 +162,12 @@ def prepare_debian(cargo_home, registry, cratespec, host_gnu_type, ldflags, link
         fp.write(f"""[source.crates-io]
 replace-with = "dh-cargo-registry"
 
+# XXX(upki): This one is special
+[source."git+https://github.com/mozilla/clubcard-crlite?rev=83d4afe61d511fe88e8bf22e8a71c3b582536e69"]
+git = "https://github.com/mozilla/clubcard-crlite"
+rev = "83d4afe61d511fe88e8bf22e8a71c3b582536e69"
+replace-with = "dh-cargo-registry"
+
 [source.dh-cargo-registry]
 directory = "{registry_path}"
 
