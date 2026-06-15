@@ -3,10 +3,10 @@ Source: https://github.com/mackwic/colored
 
 Files: rust-vendor/colored/*
 Copyright: Thomas Wickham <mackwic@gmail.com>
-License: MPL-2.0
+License: MPL-2
 Comment: No copyright year is present in the source files or LICENSE file;
  the author is taken from Cargo.toml.
 
-License: MPL-2.0
- On Debian systems, the full text of the Mozilla Public License 2.0
- can be found in the file `/usr/share/common-licenses/MPL-2.0`.
+License: MPL-2
+ On Debian systems, the full text of the Mozilla Public License Version 2.0
+ can be found in the file `/usr/share/common-licenses/MPL-2.0'.

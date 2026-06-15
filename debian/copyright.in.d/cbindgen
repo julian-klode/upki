@@ -6,10 +6,10 @@ Copyright: Emilio Cobos Álvarez <emilio@crisal.io>
  Jeff Muizelaar <jmuizelaar@mozilla.com>
  Kartikaya Gupta <kats@mozilla.com>
  Ryan Hunt <rhunt@eqrion.net>
-License: MPL-2.0
+License: MPL-2
 Comment: No copyright year is present in the source files or LICENSE file;
  the authors are taken from Cargo.toml.
 
-License: MPL-2.0
- On Debian systems, the full text of the Mozilla Public License 2.0
- can be found in the file `/usr/share/common-licenses/MPL-2.0`.
+License: MPL-2
+ On Debian systems, the full text of the Mozilla Public License Version 2.0
+ can be found in the file `/usr/share/common-licenses/MPL-2.0'.

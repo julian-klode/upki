@@ -3,6 +3,7 @@ Source: https://github.com/unicode-org/icu4x
 
 Files: rust-vendor/zerovec/*
 Copyright: 2020-2024 Unicode, Inc.
+ 1995-2016 International Business Machines Corporation and others
 License: Unicode-3.0
 
 License: Unicode-3.0

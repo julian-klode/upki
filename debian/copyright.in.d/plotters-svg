@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/plotters-rs/plotters.git
 
 Files: rust-vendor/plotters-svg/*
-Copyright: 2019-2021 Hao Hou <haohou302@gmail.com>
+Copyright: Hao Hou <haohou302@gmail.com>
 License: Expat
 
 License: Expat

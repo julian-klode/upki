@@ -14,8 +14,6 @@ Comment: The function fxhash_32 in this file is adapted from rustc-hash
  Apache-2.0 OR MIT.
 
 License: Unicode-3.0
- COPYRIGHT AND PERMISSION NOTICE
- .
  NOTICE TO USER: Carefully read the following legal agreement. BY
  DOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR
  SOFTWARE, YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO BE BOUND BY, ALL OF THE
@@ -52,7 +50,7 @@ License: Unicode-3.0
 
 License: Apache-2
  On Debian systems, the full text of the Apache License Version 2.0
- can be found in the file `/usr/share/common-licenses/Apache-2.0`.
+ can be found in the file `/usr/share/common-licenses/Apache-2.0'.
 
 License: Expat
  Permission is hereby granted, free of charge, to any person obtaining a copy

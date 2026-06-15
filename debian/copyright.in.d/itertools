@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/rust-itertools/itertools
 
 Files: rust-vendor/itertools/*
-Copyright: 2015
+Copyright: 2015 bluss
 License: Expat or Apache-2
 
 License: Expat
@@ -32,4 +32,4 @@ License: Expat
 
 License: Apache-2
  On Debian systems, the full text of the Apache License Version 2.0
- can be found in the file `/usr/share/common-licenses/Apache-2.0`.
+ can be found in the file `/usr/share/common-licenses/Apache-2.0'.
