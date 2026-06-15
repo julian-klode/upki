@@ -1,0 +1,4 @@
+usr/include/upki_openssl/
+usr/lib/*/libupki_openssl.a
+usr/lib/*/libupki_openssl.so
+usr/lib/*/pkgconfig/upki_openssl.pc
