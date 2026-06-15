@@ -188,13 +188,13 @@ def install(destdir, cratespec, host_rust_type, crate_in_registry, install_prefi
     crate, version = cratespec.rsplit("_", 1)
     log("installing into destdir '%s' prefix '%s'" % (destdir, install_prefix))
     install_target = destdir + install_prefix
+    # XXX(upki): patched to not pass --path, --root, or --vers; we handle
+    # --path as a regular argument because this is a workspace
     logrun(["env", "RUST_BACKTRACE=1",
         # set CARGO_TARGET_DIR so build products are saved in target/
         # normally `cargo install` deletes them when it exits
         "CARGO_TARGET_DIR=" + sourcepath("target"),
-        CARGO_PATH] + list(args) +
-        ([crate, "--vers", version] if crate_in_registry else ["--path", sourcepath()]) +
-        ["--root", install_target], check=True)
+        CARGO_PATH] + list(args), check=True)
     logrun(["rm", "-f", "%s/.crates.toml" % install_target])
     logrun(["rm", "-f", "%s/.crates2.json" % install_target])
 
