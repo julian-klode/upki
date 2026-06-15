@@ -1,0 +1,4 @@
+usr/include/upki/
+usr/lib/*/libupki.a
+usr/lib/*/libupki.so
+usr/lib/*/pkgconfig/upki.pc

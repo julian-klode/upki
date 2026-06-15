@@ -79,6 +79,8 @@ override_dh_auto_test:
 override_dh_auto_install:
 	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki-cli_$(VERSION) $(CARGO) install --locked --path upki-cli
 	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki-mirror_$(VERSION) $(CARGO) install --locked --path upki-mirror
+	# Build and install the shared library
+	CARGO_HOME=$(CURDIR)/debian/cargo_home $(CARGO) cinstall --locked --manifest-path upki/Cargo.toml --features capi --release --prefix /usr --destdir $(CURDIR)/debian/tmp
 	# dh-cargo-built-using is horribly broken and does not support our embedded aws-lc library.
 	env debian/bin/dh-cargo-built-using upki
 	env debian/bin/dh-cargo-built-using upki-mirror
