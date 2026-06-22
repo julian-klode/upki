@@ -1,10 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/aws/aws-lc-rs
 
-Files: rust-vendor/aws-lc-sys/aws-lc/cmake/JoinPaths.cmake
-Copyright: 2020 Jan Tojnar
-License: Expat or CC0-1.0
-
 Files: rust-vendor/aws-lc-sys/*
 Copyright:
  1995-2024 The OpenSSL Project Authors
@@ -14,41 +10,44 @@ Copyright:
  2006 Network Resonance, Inc.
  2011, RTFM, Inc.
  2012-2023 Intel Corporation
- 2014-2024 Google Inc.
+ 2008-2026 Google Inc.
  2015-2020 CloudFlare Ltd.
  2016 Brian Smith
+ 2017 Shay Gueron
  2017 the HRSS authors
  2020 Arm Ltd
- 2020 Jan Tojnar
- 2020-2022 Arm Limited
+ 2021-2022 Arm Limited
  2021-2025 Joshua E. Hill <josh@keypair.us>
  2022 Hanno Becker
  2022 Matthias Kannwischer
  2022 Robert Nagy
  2023 Amin Abdulrahman, Matthias Kannwischer
  2024 The mlkem-native project authors
- 2024 The mldsa-native project authors
+ The mldsa-native project authors
  Amazon.com, Inc. or its affiliates.
 License: Apache-2 or ISC
 
-Files: rust-vendor/aws-lc-sys/aws-lc/crypto/fipsmodule/ml_kem/*
+Files: rust-vendor/aws-lc-sys/aws-lc/cmake/JoinPaths.cmake
+Copyright: 2020 Jan Tojnar
+License: Expat or CC0-1.0
+
+Files: rust-vendor/aws-lc-sys/aws-lc/crypto/fipsmodule/ml_kem/mlkem/*
 Copyright:
  2022 Arm Limited
  2022 Hanno Becker
- 2022 Matthias Kannwischer
  2023 Amin Abdulrahman, Matthias Kannwischer
- 2024 The mlkem-native project authors
- Amazon.com, Inc. or its affiliates.
+ The mlkem-native project authors
 License: Apache-2 or ISC or Expat
 Comment: mlkem-native implementation, dual-licensed Apache-2.0 OR ISC OR MIT.
+ The surrounding glue files are covered by the catch-all Apache-2 or ISC.
 
-Files: rust-vendor/aws-lc-sys/aws-lc/crypto/fipsmodule/ml_dsa/*
+Files: rust-vendor/aws-lc-sys/aws-lc/crypto/fipsmodule/ml_dsa/mldsa/*
 Copyright:
- 2024 The mldsa-native project authors
- 2024 The mlkem-native project authors
- Amazon.com, Inc. or its affiliates.
+ The mldsa-native project authors
+ The mlkem-native project authors
 License: Apache-2 or ISC or Expat
 Comment: mldsa-native implementation, dual-licensed Apache-2.0 OR ISC OR MIT.
+ The surrounding glue files are covered by the catch-all Apache-2 or ISC.
 
 Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/*
 Copyright:
@@ -56,6 +55,38 @@ Copyright:
  Amazon.com, Inc. or its affiliates.
 License: Apache-2 or ISC or MIT-0
 Comment: s2n-bignum integer arithmetic routines.
+
+Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/arm/mlkem/*
+ rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/arm/sha3/*
+ rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/x86_att/mlkem/*
+ rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/x86_att/mldsa/*
+Copyright:
+ 2021-2022 Arm Limited
+ 2022 Arm Limited
+ 2022 Hanno Becker
+ 2022 Matthias Kannwischer
+ 2023 Amin Abdulrahman, Matthias Kannwischer
+ 2024 The mlkem-native project authors
+ Amazon.com, Inc. or its affiliates.
+License: Apache-2 or ISC or Expat
+Comment: s2n-bignum ML-KEM/ML-DSA/SHA-3 routines, dual-licensed
+ Apache-2.0 OR ISC OR MIT.
+
+Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/arm/sha3/sha3_keccak_f1600_alt2.S
+Copyright: Amazon.com, Inc. or its affiliates.
+License: Apache-2 or ISC or MIT-0
+Comment: This SHA-3 variant uses MIT-0 rather than MIT, unlike its siblings.
+
+Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/arm/fastmul/bignum_emontredc_8n_cdiff.S
+ rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/arm/fastmul/unopt/bignum_emontredc_8n_cdiff_base.S
+Copyright: Amazon.com, Inc. or its affiliates.
+License: Apache-2 or ISC
+
+Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/x86_att/sha3/sha3_keccak_f1600.S
+Copyright:
+ 2017-2024 The OpenSSL Project Authors
+ Amazon.com, Inc. or its affiliates.
+License: Apache-2
 
 Files: rust-vendor/aws-lc-sys/aws-lc/third_party/fiat/*
 Copyright:
