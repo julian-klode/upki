@@ -246,7 +246,7 @@ Copyright: 2015-2020 the fiat-crypto authors
 License: Expat
 Comment: Fiat Cryptography synthesised code.
 
-Files: rust-vendor/aws-lc-sys/aws-lc/third_party/jitterentropy/*
+Files: rust-vendor/aws-lc-sys/aws-lc/third_party/jitterentropy/jitterentropy-library/*
 Copyright: 2013-2025 Stephan Mueller <smueller@chronox.de>
  2021-2025 Joshua E. Hill <josh@keypair.us>
 License: BSD-3-clause-aws-lc-sys
