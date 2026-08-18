@@ -1,6 +1,6 @@
 [package]
 name = "upki"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.3" # Sync with `dist-packages/libupki/dist.toml`
 rust-version.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -8,36 +8,34 @@ license.workspace = true
 readme = "README.md"
 description = "Platform-independent browser-grade certificate infrastructure"
 
+[features]
+default = []
+capi = []
+fetch = ["reqwest/default-tls", "__fetch"]
+fetch-native-tls = ["reqwest/native-tls", "__fetch"]
+__fetch = ["dep:reqwest", "dep:serde_json", "dep:tempfile"]
+
 [dependencies]
-aws-lc-rs.workspace = true
 base64.workspace = true
 chrono.workspace = true
 clubcard-crlite.workspace = true
 directories.workspace = true
 hex.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, optional = true }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde.workspace = true
-serde_json.workspace = true
-tempfile.workspace = true
-tokio.workspace = true
+serde_json = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
 toml.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
 cbindgen.workspace = true
-insta.workspace = true
-insta-cmd.workspace = true
-rand.workspace = true
-regex.workspace = true
+clubcard.workspace = true
+clubcard-crlite = { workspace = true, features = ["builder"] }
 similar-asserts.workspace = true
 tempfile.workspace = true
-tiny_http.workspace = true
-
-[features]
-default = []
-capi = []
 
 [lints]
 workspace = true

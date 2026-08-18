@@ -1,15 +1,18 @@
 [package]
 name = "upki-openssl"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.3" # Sync with `dist-packages/libupki_openssl/dist.toml`
 license.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 repository.workspace = true
 
+[features]
+capi = []
+
 [dependencies]
 openssl-sys = { workspace = true }
 rustls-pki-types.workspace = true
-upki = { version = "=1.0.0-beta.1", path = "../upki", features = ["capi"] }
+upki = { version = "=1.0.0-beta.3", path = "../upki", features = ["capi"] }
 
 [dev-dependencies]
 cbindgen.workspace = true
@@ -17,9 +20,6 @@ similar-asserts.workspace = true
 
 [lints]
 workspace = true
-
-[features]
-capi = []
 
 [package.metadata.capi.header]
 generation = false

@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
 use core::fmt;
@@ -14,8 +14,7 @@ use rustls::{
     ExtendedKeyPurpose, RootCertStore, SignatureScheme, SupportedCipherSuite,
 };
 use upki::revocation::{
-    CertSerial, CtTimestamp, Index, IssuerSpkiHash, Manifest, RevocationCheckInput,
-    RevocationStatus,
+    CertSerial, CtTimestamp, Index, IssuerSpkiHash, RevocationCheckInput, RevocationStatus,
 };
 use upki::{self, Config, ConfigPath};
 use webpki::{EndEntityCert, ExtendedKeyUsage, InvalidNameContext, VerifiedPath};
@@ -70,7 +69,7 @@ impl ServerVerifier {
 
         // Pre-roll storage to check it works, and bring (eg. permanent configuration) errors
         // to forefront prior to any networking.
-        if Manifest::from_config(&config).is_err() {
+        if Index::from_cache(&config).is_err() {
             let _ = policy.missing_data.as_result()?;
         }
 
@@ -118,16 +117,16 @@ impl ServerVerifier {
             return self.policy.cert_has_no_scts.as_result();
         }
 
-        let input = RevocationCheckInput {
-            cert_serial: CertSerial(
+        let input = RevocationCheckInput::new(
+            CertSerial(
                 verified_path
                     .end_entity()
                     .serial()
                     .to_vec(),
             ),
-            issuer_spki_hash: IssuerSpkiHash(issuer_spki_hash),
+            IssuerSpkiHash(issuer_spki_hash),
             sct_timestamps,
-        };
+        );
 
         match Index::from_cache(&self.config).and_then(|mut index| index.check(&input)) {
             Ok(rs) => Ok(rs),

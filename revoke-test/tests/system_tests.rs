@@ -9,7 +9,6 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use insta_cmd::get_cargo_bin;
 use revoke_test::{CertificateDetail, RevocationTestSite, RevocationTestSites};
 use rustls::client::danger::ServerCertVerifier;
 use rustls::pki_types::{ServerName, UnixTime};
@@ -19,6 +18,7 @@ use rustls_upki::{Policy, ServerVerifier};
 
 #[path = "api/ffi.rs"]
 mod ffi;
+#[cfg(not(windows))]
 #[path = "api/openssl.rs"]
 mod openssl;
 
@@ -33,12 +33,19 @@ fn real_world_system_tests() {
     .unwrap();
     fs::write(TEST_CONFIG_PATH, TEST_CONFIG).unwrap();
 
-    Command::new(get_cargo_bin("upki"))
+    let fetch = upki()
         .arg("--config-file")
         .arg(TEST_CONFIG_PATH)
         .arg("fetch")
         .output()
         .expect("cannot execute 'upki fetch'");
+    assert!(
+        fetch.status.success(),
+        "'upki fetch' failed ({})\nstdout:\n{}\nstderr:\n{}",
+        fetch.status,
+        String::from_utf8_lossy(&fetch.stdout),
+        String::from_utf8_lossy(&fetch.stderr),
+    );
 
     let tests = serde_json::from_reader::<_, RevocationTestSites<'static>>(
         File::open("../revoke-test/test-sites.json")
@@ -52,6 +59,7 @@ fn real_world_system_tests() {
 
     let high_level_cli = test_each_site(tests.sites.iter(), high_level_cli, "cli");
     let ffi = test_each_site(tests.sites.iter(), ffi::ffi, "ffi");
+    #[cfg(not(windows))]
     let openssl = test_each_site(tests.sites.iter(), openssl::openssl, "openssl");
 
     let verifier = ServerVerifier::new(
@@ -65,23 +73,34 @@ fn real_world_system_tests() {
     .unwrap();
 
     let rustls_results = test_each_site(tests.sites.iter(), verifier, "rustls");
-
-    for ((((site, high), rustls), ffi), openssl) in tests
+    let iter = tests
         .sites
         .iter()
         .zip(high_level_cli.iter())
         .zip(rustls_results.iter())
-        .zip(ffi.iter())
-        .zip(openssl.iter())
-    {
+        .zip(ffi.iter());
+
+    #[cfg(not(windows))]
+    let iter = iter.zip(openssl.iter());
+
+    for cases in iter {
+        #[cfg(windows)]
+        let (((site, high), rustls), ffi) = cases;
+        #[cfg(not(windows))]
+        let ((((site, high), rustls), ffi), openssl) = cases;
+
+        // When rustls reports the cert as expired it short-circuits before doing any revocation
+        // check, so its verdict says nothing about revocation status. The high-level API does no
+        // expiry check, so the two are not comparable in that case; skip the comparison.
         assert!(
-            high == rustls || *high == rustls.expired_as_revoked(),
+            high == rustls || *rustls == TestResult::Expired,
             "site {site:?} revocation result disagrees between high-level API ({high:?})  and rustls verifier ({rustls:?})"
         );
         assert!(
             high == ffi,
             "site {site:?} revocation result disagrees between high-level API ({high:?}) and FFI API ({ffi:?})"
         );
+        #[cfg(not(windows))]
         assert!(
             high == openssl,
             "site {site:?} revocation result disagrees between high-level API ({high:?}) and OpenSSL API ({openssl:?})"
@@ -135,7 +154,7 @@ impl TestCase for ServerVerifier {
 }
 
 fn high_level_cli(detail: &CertificateDetail) -> TestResult {
-    let mut c = Command::new(get_cargo_bin("upki"))
+    let mut c = upki()
         .arg("--config-file")
         .arg(TEST_CONFIG_PATH)
         .arg("revocation")
@@ -231,6 +250,16 @@ fn test_each_site<'a>(
     results
 }
 
+fn upki() -> Command {
+    let mut cmd = Command::new("cargo");
+    cmd.arg("run")
+        .arg("--quiet")
+        .arg("--package")
+        .arg("upki-cli")
+        .arg("--");
+    cmd
+}
+
 impl<F> TestCase for F
 where
     F: Fn(&CertificateDetail) -> TestResult,
@@ -250,18 +279,6 @@ enum TestResult {
     IncorrectlyNotRevoked,
     DecorationFailed,
     Expired,
-}
-
-impl TestResult {
-    fn expired_as_revoked(&self) -> Self {
-        // The high-level CLI doesn't do expiry checks, while the rustls verifier does.
-        // So we treat expiry as a class of revocation for the purpose of checking
-        // that the APIs agree.
-        match self {
-            Self::Expired => Self::CorrectlyRevoked,
-            other => *other,
-        }
-    }
 }
 
 const TEST_CONFIG_PATH: &str = "tmp/system-test/config.toml";

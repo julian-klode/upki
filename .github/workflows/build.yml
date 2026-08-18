@@ -41,7 +41,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           submodules: true
           persist-credentials: false
@@ -56,27 +56,30 @@ jobs:
         with:
           tool: cargo-c
 
-      - name: Install OpenSSL (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-          vcpkg install openssl:x64-windows-static-md
-
-      - name: Build (debug)
-        run: cargo build --locked
+      - name: Check all targets
+        if: matrix.os != 'windows-latest'
+        run: cargo check --locked --all-features --all-targets
+      - name: Check all targets (Windows) # Skip upki-openssl on Windows because it requires OpenSSL to be installed
+        if: matrix.os == 'windows-latest'
+        run: cargo check --locked -p upki -p rustls-upki -p upki-cli -p upki-mirror -p revoke-test --all-features --all-targets
       - name: Run tests (debug)
-        run: cargo test --locked
-
-      - name: Build (release)
-        run: cargo build --locked --release
-      - name: Run tests (release)
-        run: cargo test --locked --release
+        if: matrix.os != 'windows-latest'
+        run: cargo test --locked -p upki -p rustls-upki -p upki-cli -p upki-mirror -p revoke-test
+      - name: Run tests (debug, Windows) # Skip upki-openssl on Windows because it requires OpenSSL to be installed
+        if: matrix.os == 'windows-latest'
+        run: cargo test -p revoke-test -p rustls-upki -p upki
+      - name: Without features
+        run: cargo check --locked -p upki --no-default-features
+      - name: CLI without features
+        run: cargo check --locked -p upki-cli --no-default-features
+      - name: CLI with native-tls
+        run: cargo check --locked -p upki-cli --no-default-features --features fetch-native-tls
 
       - name: Build FFI
-        run: cargo cbuild --locked --release -p upki
+        run: cargo cbuild --locked -p upki
       - name: Build OpenSSL integration
-        run: cargo cbuild --locked --release -p upki-openssl
+        if: runner.os != 'Windows'
+        run: cargo cbuild --locked -p upki-openssl
 
       - name: Run system tests (release)
         run: cargo test --locked --release --test system_tests -- --ignored --nocapture
@@ -85,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           submodules: true
           persist-credentials: false
@@ -114,7 +117,7 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
         with:
           submodules: true
           persist-credentials: false
@@ -125,4 +128,4 @@ jobs:
           toolchain: "1.85"
 
       - name: Check MSRV
-        run: cargo check --locked --all-features
+        run: cargo check --locked --all-features -p upki -p rustls-upki -p upki-openssl -p upki-cli

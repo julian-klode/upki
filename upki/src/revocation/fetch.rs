@@ -19,12 +19,11 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use aws_lc_rs::digest;
 use tracing::{debug, info};
 
 use super::index::INDEX_BIN;
 use super::{Error, Index, Manifest, ManifestFile};
-use crate::Config;
+use crate::{Config, sha256};
 
 /// Update the local revocation cache by fetching updates over the network.
 ///
@@ -39,8 +38,12 @@ pub async fn fetch(dry_run: bool, config: &Config) -> Result<ExitCode, Error> {
     );
 
     let manifest_url = format!("{}{MANIFEST_JSON}", config.revocation.fetch_url);
-    let client = reqwest::Client::builder()
-        .use_rustls_tls()
+    #[cfg(feature = "fetch")]
+    let builder = reqwest::Client::builder().use_rustls_tls();
+    #[cfg(all(feature = "fetch-native-tls", not(feature = "fetch")))]
+    let builder = reqwest::Client::builder().use_native_tls();
+
+    let client = builder
         .timeout(Duration::from_secs(REQUEST_TIMEOUT))
         .user_agent(format!(
             "{}/{} ({})",
@@ -404,9 +407,9 @@ fn atomic_write(path: &Path, data: &[u8]) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn hash_file(path: &Path) -> Result<digest::Digest, io::Error> {
+fn hash_file(path: &Path) -> Result<sha256::Digest, io::Error> {
     let mut file = File::open(path)?;
-    let mut hasher = digest::Context::new(&digest::SHA256);
+    let mut hasher = sha256::Context::new();
     let mut buffer = [0; 4096];
     loop {
         let n = file.read(&mut buffer)?;

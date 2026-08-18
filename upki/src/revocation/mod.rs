@@ -1,24 +1,32 @@
 use core::error::Error as StdError;
 use core::str::FromStr;
 use core::{fmt, str};
+#[cfg(feature = "__fetch")]
 use std::fs::File;
-use std::io::{self, BufReader};
+use std::io;
+#[cfg(feature = "__fetch")]
+use std::io::BufReader;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use aws_lc_rs::digest;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use chrono::{DateTime, Utc};
 use clubcard_crlite::CRLiteKey;
+pub use clubcard_crlite::IssuerSpkiHash;
 use rustls_pki_types::{CertificateDer, TrustAnchor};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+#[cfg(feature = "__fetch")]
 use crate::Config;
+use crate::sha256;
 
+#[cfg(feature = "__fetch")]
 mod fetch;
+#[cfg(feature = "__fetch")]
 use fetch::Plan;
+#[cfg(feature = "__fetch")]
 pub use fetch::fetch;
 
 mod index;
@@ -42,6 +50,7 @@ pub struct Manifest {
 
 impl Manifest {
     /// Load the revocation manifest from the cache directory specified in the configuration.
+    #[cfg(feature = "__fetch")]
     pub fn from_config(config: &Config) -> Result<Self, Error> {
         let mut file_name = config.revocation_cache_dir();
         file_name.push("manifest.json");
@@ -65,6 +74,7 @@ impl Manifest {
     /// Verify the current contents of the cache against this manifest.
     ///
     /// This performs disk IO but does not perform network IO.
+    #[cfg(feature = "__fetch")]
     pub fn verify(&self, config: &Config) -> Result<ExitCode, Error> {
         self.introduce()?;
         let plan = Plan::construct(self, &None, "https://.../", &config.revocation_cache_dir())?;
@@ -116,6 +126,7 @@ pub struct RevocationCheckInput {
     pub issuer_spki_hash: IssuerSpkiHash,
     /// CT log IDs and inclusion timestamps present in the end-entity certificate.
     pub sct_timestamps: Vec<CtTimestamp>,
+    issuer_serial_hash: [u8; 32],
 }
 
 impl RevocationCheckInput {
@@ -138,10 +149,7 @@ impl RevocationCheckInput {
 
         let issuer = find_issuer(end_entity.issuer(), rest.iter())?;
         let issuer_spki_hash = IssuerSpkiHash(
-            digest::digest(&digest::SHA256, &webpki::spki_for_anchor(&issuer))
-                .as_ref()
-                .try_into()
-                .expect("sha256 output must be [u8;32]"),
+            sha256::Digest::from(&[webpki::spki_for_anchor(&issuer).as_ref()][..]).0,
         );
 
         let mut sct_timestamps = vec![];
@@ -157,15 +165,38 @@ impl RevocationCheckInput {
             });
         }
 
-        Ok(Self {
-            cert_serial: CertSerial(end_entity.serial().into()),
+        Ok(Self::new(
+            CertSerial(end_entity.serial().to_vec()),
             issuer_spki_hash,
             sct_timestamps,
-        })
+        ))
+    }
+
+    /// Construct a `RevocationCheckInput` from its constituent parts.
+    pub fn new(
+        cert_serial: CertSerial,
+        issuer_spki_hash: IssuerSpkiHash,
+        sct_timestamps: Vec<CtTimestamp>,
+    ) -> Self {
+        let mut issuer_serial_context = sha256::Context::new();
+        issuer_serial_context.update(&issuer_spki_hash.0);
+        issuer_serial_context.update(&cert_serial.0);
+        let issuer_serial_hash = issuer_serial_context.finish().0;
+
+        Self {
+            cert_serial,
+            issuer_spki_hash,
+            sct_timestamps,
+            issuer_serial_hash,
+        }
     }
 
     fn key(&self) -> CRLiteKey<'_> {
-        CRLiteKey::new(&self.issuer_spki_hash.0, &self.cert_serial.0)
+        CRLiteKey::with_hash(
+            &self.issuer_spki_hash,
+            &self.cert_serial.0,
+            self.issuer_serial_hash,
+        )
     }
 }
 
@@ -184,31 +215,6 @@ impl FromStr for CertSerial {
                 context: "certificate serial",
             }),
         }
-    }
-}
-
-/// The SHA256 hash of a `SubjectPublicKeyInfoDer` belonging to a certificate's issuer.
-#[derive(Clone, Debug)]
-pub struct IssuerSpkiHash(pub [u8; 32]);
-
-impl FromStr for IssuerSpkiHash {
-    type Err = Error;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Ok(Self(
-            BASE64_STANDARD
-                .decode(value)
-                .map_err(|e| Error::InvalidBase64 {
-                    error: Box::new(e),
-                    context: "issuer SPKI hash",
-                })?
-                .try_into()
-                .map_err(|b: Vec<u8>| Error::InvalidLength {
-                    expected: 32,
-                    actual: b.len(),
-                    context: "issuer SPKI hash",
-                })?,
-        ))
     }
 }
 
