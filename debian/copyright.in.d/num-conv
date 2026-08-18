@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/jhpratt/num-conv
 
 Files: rust-vendor/num-conv/*
-Copyright: 2023 Jacob Pratt <jacob@jhpratt.dev>
+Copyright: Jacob Pratt <jacob@jhpratt.dev>
 License: Apache-2 or Expat
 
 License: Apache-2

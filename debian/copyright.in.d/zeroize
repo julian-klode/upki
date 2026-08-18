@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/RustCrypto/utils
 
 Files: rust-vendor/zeroize/*
-Copyright: 2018-2021 The RustCrypto Project Developers
+Copyright: 2018-2026 The RustCrypto Project Developers
 License: Apache-2 or Expat
 
 License: Apache-2
