@@ -11,6 +11,8 @@ use rustls_pki_types::CertificateDer;
 use crate::revocation::{self, Index, RevocationCheckInput, RevocationStatus};
 use crate::{Config, ConfigPath, Error};
 
+use tracing::debug;
+
 /// Check the revocation status of a certificate.
 ///
 /// The `certificates` array should contain the end-entity certificate first,
@@ -90,18 +92,24 @@ pub unsafe extern "C" fn upki_config_new(
     out: *mut *mut upki_config,
 ) -> upki_result {
     catch_unwind(|| {
+        debug!(target: "upki::ffi::upki_config_new", "entering: path={:p} out={:p}", path, out);
         if out.is_null() {
+            debug!(target: "upki::ffi::upki_config_new", "out is NULL, returning UPKI_ERR_NULL_POINTER");
             return upki_result::UPKI_ERR_NULL_POINTER;
         }
 
         let path = match path.is_null() {
             true => match ConfigPath::new(None) {
                 Ok(path) => path,
-                Err(e) => return e.into(),
+                Err(e) => {
+                    debug!(target: "upki::ffi::upki_config_new", "default config path resolution failed: {e}");
+                    return e.into();
+                }
             },
             false => {
                 let path = unsafe { CStr::from_ptr(path) };
                 let Ok(path) = path.to_str() else {
+                    debug!(target: "upki::ffi::upki_config_new", "path is not valid UTF-8, returning UPKI_ERR_CONFIG_PATH");
                     return upki_result::UPKI_ERR_CONFIG_PATH;
                 };
                 ConfigPath::Specified(Path::new(path).to_owned())
@@ -110,10 +118,14 @@ pub unsafe extern "C" fn upki_config_new(
 
         match Config::from_file_or_user_default(&path) {
             Ok(config) => {
+                debug!(target: "upki::ffi::upki_config_new", "config loaded");
                 unsafe { *out = Box::into_raw(Box::new(upki_config(config))) };
                 upki_result::UPKI_OK
             }
-            Err(err) => err.into(),
+            Err(err) => {
+                debug!(target: "upki::ffi::upki_config_new", "failed to load config: {err}");
+                err.into()
+            }
         }
     })
     .unwrap_or(upki_result::UPKI_ERR_PANICKED)

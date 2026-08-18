@@ -13,6 +13,9 @@ capi = []
 openssl-sys = { workspace = true }
 rustls-pki-types.workspace = true
 upki = { version = "=1.0.0-beta.3", path = "../upki", features = ["capi"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+x509-parser.workspace = true
 
 [dev-dependencies]
 cbindgen.workspace = true

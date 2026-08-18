@@ -2807,7 +2807,10 @@ dependencies = [
  "openssl-sys",
  "rustls-pki-types",
  "similar-asserts",
+ "tracing",
+ "tracing-subscriber",
  "upki",
+ "x509-parser",
 ]
 
 [[package]]
