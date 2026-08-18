@@ -1,3 +1,12 @@
+upki (1.0.0~beta.3-0ubuntu1) stonking; urgency=medium
+
+  * New upstream release
+  * Refresh copyright for added, removed, changed crates
+  * Fix cmakelist.txt copyright issue for jitterentropy
+  * d/rules: Build using fetch-native-tls (OpenSSL)
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Tue, 18 Aug 2026 22:43:26 +0200
+
 upki (1.0.0~beta.1-0ubuntu1) stonking; urgency=medium
 
   * Initial upload (LP: #2139297)
