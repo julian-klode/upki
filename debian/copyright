@@ -27,43 +27,30 @@ Files: rust-vendor/android_system_properties/*
  rust-vendor/core-foundation-sys/*
  rust-vendor/crunchy/*
  rust-vendor/encode_unicode/*
- rust-vendor/foldhash/*
- rust-vendor/hashbrown-0.15.5/*
  rust-vendor/hermit-abi/*
  rust-vendor/iana-time-zone-haiku/*
- rust-vendor/id-arena/*
  rust-vendor/jni/*
  rust-vendor/jni-sys/*
  rust-vendor/jni-sys-0.3.1/*
  rust-vendor/jni-sys-macros/*
  rust-vendor/js-sys/*
- rust-vendor/leb128fmt/*
  rust-vendor/libredox/*
  rust-vendor/once_cell_polyfill/*
- rust-vendor/prettyplease/*
  rust-vendor/r-efi/*
- rust-vendor/r-efi-5.3.0/*
  rust-vendor/redox_users/*
  rust-vendor/rustls-platform-verifier-android/*
  rust-vendor/rustversion/*
  rust-vendor/schannel/*
  rust-vendor/security-framework/*
  rust-vendor/security-framework-sys/*
- rust-vendor/semver/*
  rust-vendor/thiserror-1.0.69/*
  rust-vendor/thiserror-impl-1.0.69/*
- rust-vendor/unicode-xid/*
  rust-vendor/wasi/*
- rust-vendor/wasip2/*
- rust-vendor/wasip3/*
  rust-vendor/wasm-bindgen/*
  rust-vendor/wasm-bindgen-futures/*
  rust-vendor/wasm-bindgen-macro/*
  rust-vendor/wasm-bindgen-macro-support/*
  rust-vendor/wasm-bindgen-shared/*
- rust-vendor/wasm-encoder/*
- rust-vendor/wasm-metadata/*
- rust-vendor/wasmparser/*
  rust-vendor/web-sys/*
  rust-vendor/web-time/*
  rust-vendor/webpki-root-certs/*
@@ -80,41 +67,23 @@ Files: rust-vendor/android_system_properties/*
  rust-vendor/windows-sys/*
  rust-vendor/windows-sys-0.45.0/*
  rust-vendor/windows-sys-0.52.0/*
- rust-vendor/windows-sys-0.59.0/*
- rust-vendor/windows-sys-0.60.2/*
  rust-vendor/windows-targets/*
  rust-vendor/windows-targets-0.42.2/*
- rust-vendor/windows-targets-0.52.6/*
  rust-vendor/windows_aarch64_gnullvm/*
  rust-vendor/windows_aarch64_gnullvm-0.42.2/*
- rust-vendor/windows_aarch64_gnullvm-0.52.6/*
  rust-vendor/windows_aarch64_msvc/*
  rust-vendor/windows_aarch64_msvc-0.42.2/*
- rust-vendor/windows_aarch64_msvc-0.52.6/*
  rust-vendor/windows_i686_gnu/*
  rust-vendor/windows_i686_gnu-0.42.2/*
- rust-vendor/windows_i686_gnu-0.52.6/*
  rust-vendor/windows_i686_gnullvm/*
- rust-vendor/windows_i686_gnullvm-0.52.6/*
  rust-vendor/windows_i686_msvc/*
  rust-vendor/windows_i686_msvc-0.42.2/*
- rust-vendor/windows_i686_msvc-0.52.6/*
  rust-vendor/windows_x86_64_gnu/*
  rust-vendor/windows_x86_64_gnu-0.42.2/*
- rust-vendor/windows_x86_64_gnu-0.52.6/*
  rust-vendor/windows_x86_64_gnullvm/*
  rust-vendor/windows_x86_64_gnullvm-0.42.2/*
- rust-vendor/windows_x86_64_gnullvm-0.52.6/*
  rust-vendor/windows_x86_64_msvc/*
  rust-vendor/windows_x86_64_msvc-0.42.2/*
- rust-vendor/windows_x86_64_msvc-0.52.6/*
- rust-vendor/wit-bindgen/*
- rust-vendor/wit-bindgen-0.46.0/*
- rust-vendor/wit-bindgen-core/*
- rust-vendor/wit-bindgen-rust/*
- rust-vendor/wit-bindgen-rust-macro/*
- rust-vendor/wit-component/*
- rust-vendor/wit-parser/*
 Copyright: Upstream authors (not included in source package)
 License: filtered
  This crate was filtered out by cargo-vendor-filterer and is not
@@ -283,10 +252,6 @@ Files: rust-vendor/aws-lc-sys/aws-lc/third_party/s2n-bignum/s2n-bignum-imported/
 Copyright: 2017-2024 The OpenSSL Project Authors
  Amazon.com, Inc. or its affiliates.
 License: Apache-2
-
-Files: rust-vendor/base64-0.21.7/*
-Copyright: 2015 Alice Maz
-License: Expat or Apache-2
 
 Files: rust-vendor/base64/*
 Copyright: 2015 Alice Maz
@@ -567,6 +532,14 @@ Files: rust-vendor/fnv/*
 Copyright: 2017 Contributors
 License: Apache-2 or Expat
 
+Files: rust-vendor/foreign-types-shared/*
+Copyright: 2017 The foreign-types Developers
+License: Apache-2 or Expat
+
+Files: rust-vendor/foreign-types/*
+Copyright: 2017 The foreign-types Developers
+License: Apache-2 or Expat
+
 Files: rust-vendor/form_urlencoded/*
 Copyright: 2013-2016 The rust-url developers
 License: Apache-2 or Expat
@@ -613,11 +586,6 @@ Files: rust-vendor/getrandom-0.2.17/*
 Copyright: 2014 The Rust Project Developers
  2018-2024 The rust-random Project Developers
 License: Expat or Apache-2
-
-Files: rust-vendor/getrandom-0.3.4/*
-Copyright: 2018-2025 The rust-random Project Developers
- 2014 The Rust Project Developers
-License: Apache-2 or Expat
 
 Files: rust-vendor/getrandom/*
 Copyright: 2018-2026 The rust-random Project Developers
@@ -672,6 +640,10 @@ License: Apache-2 or Expat
 Files: rust-vendor/hyper-rustls/*
 Copyright: 2016 Joseph Birr-Pixton <jpixton@gmail.com>
 License: Apache-2 or ISC or Expat
+
+Files: rust-vendor/hyper-tls/*
+Copyright: 2017 Sean McArthur
+License: Expat or Apache-2
 
 Files: rust-vendor/hyper-util/*
 Copyright: 2023-2025 Sean McArthur <sean@seanmonstar.com>
@@ -818,6 +790,10 @@ Files: rust-vendor/lru-slab/*
 Copyright: 2024 The lru-slab Developers
 License: Expat or Apache-2 or Zlib
 
+Files: rust-vendor/matchers/*
+Copyright: 2019 Eliza Weisman <eliza@buoyant.io>
+License: Expat
+
 Files: rust-vendor/memchr/*
 Copyright: 2015 Andrew Gallant <jamslam@gmail.com>
 License: Unlicense or Expat
@@ -843,6 +819,10 @@ License: SunPro
 Files: rust-vendor/mio/*
 Copyright: 2014 Carl Lerche and other MIO contributors
 License: Expat
+
+Files: rust-vendor/native-tls/*
+Copyright: 2016 The rust-native-tls Developers
+License: Apache-2 or Expat
 
 Files: rust-vendor/nix/*
 Copyright: 2015 Carl Lerche + nix-rust Authors
@@ -894,6 +874,10 @@ Files: rust-vendor/oorandom/*
 Copyright: 2019 Simon Heath
 License: Expat
 
+Files: rust-vendor/openssl-macros/*
+Copyright: 2022 Steven Fackler
+License: Expat or Apache-2
+
 Files: rust-vendor/openssl-probe/*
 Copyright: 2014 Alex Crichton <alex@alexcrichton.com>
 License: Expat or Apache-2
@@ -901,6 +885,12 @@ License: Expat or Apache-2
 Files: rust-vendor/openssl-sys/*
 Copyright: 2014 Alex Crichton
 License: Expat
+
+Files: rust-vendor/openssl/*
+Copyright: 2011-2017 Google Inc.
+ 2013 Jack Lloyd
+ 2013-2014 Steven Fackler
+License: Apache-2
 
 Files: rust-vendor/option-ext/*
 Copyright: Simon Ochsenreither <simon@ochsenreither.de>
@@ -969,10 +959,10 @@ Files: rust-vendor/quote/*
 Copyright: David Tolnay <dtolnay@gmail.com>
 License: Expat or Apache-2
 
-Files: rust-vendor/rand-0.9.4/*
+Files: rust-vendor/rand-0.8.6/*
 Copyright: 2013-2017 The Rust Project Developers
- 2018-2024 Developers of the Rand project
-License: Apache-2 or Expat
+ 2018-2021 Developers of the Rand project
+License: Expat or Apache-2
 
 Files: rust-vendor/rand/*
 Copyright: 2018-2024 Developers of the Rand project
@@ -985,14 +975,20 @@ Copyright: 2018-2020 Developers of the Rand project
  2014 The Rust Project Developers
 License: Apache-2 or Expat
 
-Files: rust-vendor/rand_core-0.9.5/*
-Copyright: 2018-2019 Developers of the Rand project
- 2014-2018 The Rust Project Developers
+Files: rust-vendor/rand_core-0.6.4/*
+Copyright: 2014-2018 The Rust Project Developers
+ 2018-2019 Developers of the Rand project
 License: Apache-2 or Expat
 
 Files: rust-vendor/rand_core/*
 Copyright: 2018-2026 The Rand Project Developers
 License: Expat or Apache-2
+
+Files: rust-vendor/rand_pcg/*
+Copyright: 2014-2019 Melissa O'Neill and PCG Project contributors
+ 2017 Paul Dicker
+ 2018-2023 Developers of the Rand project
+License: Apache-2 or Expat
 
 Files: rust-vendor/rayon-core/*
 Copyright: 2010 The Rust Project Developers
@@ -1178,6 +1174,10 @@ Copyright: 2016 Michael Ma
  2014-2019 The special Developers
 License: Expat
 
+Files: rust-vendor/strip-ansi-escapes/*
+Copyright: 2018 Mozilla
+License: Apache-2 or Expat
+
 Files: rust-vendor/strsim/*
 Copyright: 2015 Danny Guo
  2016 Titus Wormer <tituswormer@gmail.com>
@@ -1188,6 +1188,10 @@ Files: rust-vendor/subtle/*
 Copyright: 2016-2024 Isis Agora Lovecruft <isis@patternsinthevoid.net>
  2016-2018 Henry de Valence <hdevalence@hdevalence.ca>
 License: BSD-3-clause
+
+Files: rust-vendor/syn-2.0.118/*
+Copyright: David Tolnay <dtolnay@gmail.com>
+License: Apache-2 or Expat
 
 Files: rust-vendor/syn/*
 Copyright: David Tolnay <dtolnay@gmail.com>
@@ -1256,6 +1260,10 @@ License: Apache-2 or Expat or Zlib
 Files: rust-vendor/tokio-macros/*
 Copyright: 2019 Yoshua Wuyts
  Tokio Contributors
+License: Expat
+
+Files: rust-vendor/tokio-native-tls/*
+Copyright: 2019 Tokio Contributors
 License: Expat
 
 Files: rust-vendor/tokio-rustls/*
@@ -1393,6 +1401,17 @@ Files: rust-vendor/version_check/*
 Copyright: 2017-2018 Sergio Benitez
 License: Apache-2 or Expat
 
+Files: rust-vendor/vte/*
+Copyright: 2016 Joe Wilm <joe@jwilm.com>
+License: Apache-2 or Expat
+
+Files: rust-vendor/vte/src/ansi.rs
+Copyright: 2016 Joe Wilm <joe@jwilm.com>
+License: Apache-2
+Comment: This file declares only SPDX-License-Identifier: Apache-2.0 (no MIT
+ choice); it originated in the alacritty_terminal crate, licensed under the
+ Apache License, Version 2.0.
+
 Files: rust-vendor/walkdir/*
 Copyright: 2015 Andrew Gallant <jamslam@gmail.com>
 License: Expat or Unlicense
@@ -1485,7 +1504,7 @@ License: Expat
 License: Apache-2
  On Debian systems, the full text of the Apache License Version 2.0
  can be found in the file `/usr/share/common-licenses/Apache-2.0'.
-Comment: Used by: anes, anstream, anstyle, anstyle-parse, anstyle-query, anyhow, approx, ascii, asn1-rs, asn1-rs-derive, asn1-rs-impl, atomic-waker, autocfg, aws-lc-rs, aws-lc-sys, base64, base64-0.21.7, bitflags, block-buffer, bstr, cast, cc, cfg-if, chacha20, chrono, chunked_transfer, ciborium, ciborium-io, ciborium-ll, clap, clap_builder, clap_derive, clap_lex, cmake, codspeed, codspeed-criterion-compat, codspeed-criterion-compat-walltime, colorchoice, cpufeatures, cpufeatures-0.2.17, criterion, criterion-plot, criterion-plot-0.5.0, crossbeam-deque, crossbeam-epoch, crossbeam-utils, crypto-common, der-parser, deranged, digest, directories, dirs-sys, displaydoc, dunce, either, encoding_rs, equivalent, errno, eyre, fastrand, find-msvc-tools, fnv, form_urlencoded, futures-channel, futures-core, futures-sink, futures-task, futures-util, getrandom, getrandom-0.2.17, getrandom-0.3.4, glob, half, hashbrown, heck, hex, http, httparse, httpdate, hyper-rustls, iana-time-zone, icu_provider, idna, idna_adapter, indenter, indexmap, insta, insta-cmd, ipnet, is_terminal_polyfill, itertools, itertools-0.10.5, itoa, jobserver, lazy_static, libc, linux-raw-sys, log, lru-slab, mime, minimal-lexical, num-bigint, num-conv, num-integer, num-traits, oid-registry, once_cell, openssl-probe, page_size, percent-encoding, pin-project-lite, pkg-config, powerfmt, ppv-lite86, proc-macro2, quinn, quinn-proto, quinn-udp, quote, rand, rand-0.9.4, rand_chacha, rand_core, rand_core-0.9.5, rayon, rayon-core, regex, regex-automata, regex-syntax, reqwest, ring, rustc-hash, rusticata-macros, rustix, rustls, rustls-native-certs, rustls-pki-types, rustls-platform-verifier, ryu, serde, serde_core, serde_derive, serde_json, serde_spanned, sha2, shlex, similar, similar-2.7.0, similar-asserts, smallvec, socket2, stable_deref_trait, syn, sync_wrapper, tempfile, thiserror, thiserror-impl, thread_local, time, time-core, time-macros, tiny_http, tinytemplate, tinyvec, tinyvec_macros, tokio-rustls, toml, toml-0.9.12+spec-1.1.0, toml_datetime, toml_datetime-0.7.5+spec-1.1.0, toml_parser, toml_writer, tower, typenum, unicode-ident, unicode-segmentation, url, utf8_iter, utf8parse, vcpkg, version_check, webpki-ccadb, x509-parser, yasna, zerocopy, zerocopy-derive, zeroize
+Comment: Used by: anes, anstream, anstyle, anstyle-parse, anstyle-query, anyhow, approx, ascii, asn1-rs, asn1-rs-derive, asn1-rs-impl, atomic-waker, autocfg, aws-lc-rs, aws-lc-sys, base64, bitflags, block-buffer, bstr, cast, cc, cfg-if, chacha20, chrono, chunked_transfer, ciborium, ciborium-io, ciborium-ll, clap, clap_builder, clap_derive, clap_lex, cmake, codspeed, codspeed-criterion-compat, codspeed-criterion-compat-walltime, colorchoice, cpufeatures, cpufeatures-0.2.17, criterion, criterion-plot, criterion-plot-0.5.0, crossbeam-deque, crossbeam-epoch, crossbeam-utils, crypto-common, der-parser, deranged, digest, directories, dirs-sys, displaydoc, dunce, either, encoding_rs, equivalent, errno, eyre, fastrand, find-msvc-tools, fnv, foreign-types, foreign-types-shared, form_urlencoded, futures-channel, futures-core, futures-sink, futures-task, futures-util, getrandom, getrandom-0.2.17, glob, half, hashbrown, heck, hex, http, httparse, httpdate, hyper-rustls, hyper-tls, iana-time-zone, icu_provider, idna, idna_adapter, indenter, indexmap, insta, insta-cmd, ipnet, is_terminal_polyfill, itertools, itertools-0.10.5, itoa, jobserver, lazy_static, libc, linux-raw-sys, log, lru-slab, mime, minimal-lexical, native-tls, num-bigint, num-conv, num-integer, num-traits, oid-registry, once_cell, openssl, openssl-macros, openssl-probe, page_size, percent-encoding, pin-project-lite, pkg-config, powerfmt, ppv-lite86, proc-macro2, quinn, quinn-proto, quinn-udp, quote, rand, rand-0.8.6, rand_chacha, rand_core, rand_core-0.6.4, rand_pcg, rayon, rayon-core, regex, regex-automata, regex-syntax, reqwest, ring, rustc-hash, rusticata-macros, rustix, rustls, rustls-native-certs, rustls-pki-types, rustls-platform-verifier, ryu, serde, serde_core, serde_derive, serde_json, serde_spanned, sha2, shlex, similar, similar-2.7.0, similar-asserts, smallvec, socket2, stable_deref_trait, strip-ansi-escapes, syn, syn-2.0.118, sync_wrapper, tempfile, thiserror, thiserror-impl, thread_local, time, time-core, time-macros, tiny_http, tinytemplate, tinyvec, tinyvec_macros, tokio-rustls, toml, toml-0.9.12+spec-1.1.0, toml_datetime, toml_datetime-0.7.5+spec-1.1.0, toml_parser, toml_writer, tower, typenum, unicode-ident, unicode-segmentation, url, utf8_iter, utf8parse, vcpkg, version_check, vte, webpki-ccadb, x509-parser, yasna, zerocopy, zerocopy-derive, zeroize
 
 License: Apache-2 with LLVM exception
  On Debian systems, the full text of the Apache License Version 2.0
@@ -1830,7 +1849,7 @@ License: Expat
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
-Comment: Used by: aho-corasick, alloca, anes, anstream, anstyle, anstyle-parse, anstyle-query, anyhow, ascii, asn1-rs, asn1-rs-derive, asn1-rs-impl, atomic-waker, autocfg, aws-lc-sys, base64, base64-0.21.7, bincode, bitflags, block-buffer, bstr, bytes, cast, cc, cfg-if, cfg_aliases, chacha20, chrono, chunked_transfer, clap, clap_builder, clap_derive, clap_lex, cmake, codspeed, codspeed-criterion-compat, codspeed-criterion-compat-walltime, colorchoice, console, cpufeatures, cpufeatures-0.2.17, criterion, criterion-plot, criterion-plot-0.5.0, crossbeam-deque, crossbeam-epoch, crossbeam-utils, crypto-common, csv, csv-core, data-encoding, der-parser, deranged, digest, directories, dirs-sys, displaydoc, either, encoding_rs, equivalent, errno, eyre, fastrand, find-msvc-tools, fnv, form_urlencoded, fs_extra, futures-channel, futures-core, futures-sink, futures-task, futures-util, generic-array, getrandom, getrandom-0.2.17, getrandom-0.3.4, glob, h2, half, hashbrown, heck, hex, http, http-body, http-body-util, httparse, httpdate, hyper, hyper-rustls, hyper-util, iana-time-zone, icu_provider, idna, idna_adapter, indenter, indexmap, insta, ipnet, is-terminal, is_terminal_polyfill, itertools, itertools-0.10.5, itoa, jobserver, lazy_static, libc, linux-raw-sys, log, lru-slab, memchr, mime, minimal-lexical, mio, nix, nom, nu-ansi-term, num-bigint, num-conv, num-integer, num-traits, oid-registry, once_cell, oorandom, openssl-probe, openssl-sys, page_size, percent-encoding, pin-project-lite, pkg-config, plotters, plotters-backend, plotters-svg, powerfmt, ppv-lite86, proc-macro2, quinn, quinn-proto, quinn-udp, quote, rand, rand-0.9.4, rand_chacha, rand_core, rand_core-0.9.5, rayon, rayon-core, regex, regex-automata, regex-syntax, reqwest, ring, rustc-hash, rusticata-macros, rustix, rustls, rustls-native-certs, rustls-pki-types, rustls-platform-verifier, same-file, serde, serde_core, serde_derive, serde_json, serde_spanned, sha2, sharded-slab, shlex, slab, smallvec, socket2, stable_deref_trait, statrs, strsim, syn, synstructure, tempfile, thiserror, thiserror-impl, thread_local, time, time-core, time-macros, tiny_http, tinytemplate, tinyvec, tinyvec_macros, tokio, tokio-macros, tokio-rustls, tokio-util, toml, toml-0.9.12+spec-1.1.0, toml_datetime, toml_datetime-0.7.5+spec-1.1.0, toml_parser, toml_writer, tower, tower-http, tower-layer, tower-service, tracing, tracing-attributes, tracing-core, tracing-subscriber, try-lock, typenum, unicode-ident, unicode-segmentation, url, utf8_iter, utf8parse, vcpkg, version_check, walkdir, want, webpki-ccadb, winnow, winnow-0.7.15, x509-parser, yasna, zerocopy, zerocopy-derive, zeroize, zmij
+Comment: Used by: aho-corasick, alloca, anes, anstream, anstyle, anstyle-parse, anstyle-query, anyhow, ascii, asn1-rs, asn1-rs-derive, asn1-rs-impl, atomic-waker, autocfg, aws-lc-sys, base64, bincode, bitflags, block-buffer, bstr, bytes, cast, cc, cfg-if, cfg_aliases, chacha20, chrono, chunked_transfer, clap, clap_builder, clap_derive, clap_lex, cmake, codspeed, codspeed-criterion-compat, codspeed-criterion-compat-walltime, colorchoice, console, cpufeatures, cpufeatures-0.2.17, criterion, criterion-plot, criterion-plot-0.5.0, crossbeam-deque, crossbeam-epoch, crossbeam-utils, crypto-common, csv, csv-core, data-encoding, der-parser, deranged, digest, directories, dirs-sys, displaydoc, either, encoding_rs, equivalent, errno, eyre, fastrand, find-msvc-tools, fnv, foreign-types, foreign-types-shared, form_urlencoded, fs_extra, futures-channel, futures-core, futures-sink, futures-task, futures-util, generic-array, getrandom, getrandom-0.2.17, glob, h2, half, hashbrown, heck, hex, http, http-body, http-body-util, httparse, httpdate, hyper, hyper-rustls, hyper-tls, hyper-util, iana-time-zone, icu_provider, idna, idna_adapter, indenter, indexmap, insta, ipnet, is-terminal, is_terminal_polyfill, itertools, itertools-0.10.5, itoa, jobserver, lazy_static, libc, linux-raw-sys, log, lru-slab, matchers, memchr, mime, minimal-lexical, mio, native-tls, nix, nom, nu-ansi-term, num-bigint, num-conv, num-integer, num-traits, oid-registry, once_cell, oorandom, openssl-macros, openssl-probe, openssl-sys, page_size, percent-encoding, pin-project-lite, pkg-config, plotters, plotters-backend, plotters-svg, powerfmt, ppv-lite86, proc-macro2, quinn, quinn-proto, quinn-udp, quote, rand, rand-0.8.6, rand_chacha, rand_core, rand_core-0.6.4, rand_pcg, rayon, rayon-core, regex, regex-automata, regex-syntax, reqwest, ring, rustc-hash, rusticata-macros, rustix, rustls, rustls-native-certs, rustls-pki-types, rustls-platform-verifier, same-file, serde, serde_core, serde_derive, serde_json, serde_spanned, sha2, sharded-slab, shlex, slab, smallvec, socket2, stable_deref_trait, statrs, strip-ansi-escapes, strsim, syn, syn-2.0.118, synstructure, tempfile, thiserror, thiserror-impl, thread_local, time, time-core, time-macros, tiny_http, tinytemplate, tinyvec, tinyvec_macros, tokio, tokio-macros, tokio-native-tls, tokio-rustls, tokio-util, toml, toml-0.9.12+spec-1.1.0, toml_datetime, toml_datetime-0.7.5+spec-1.1.0, toml_parser, toml_writer, tower, tower-http, tower-layer, tower-service, tracing, tracing-attributes, tracing-core, tracing-subscriber, try-lock, typenum, unicode-ident, unicode-segmentation, url, utf8_iter, utf8parse, vcpkg, version_check, vte, walkdir, want, webpki-ccadb, winnow, winnow-0.7.15, x509-parser, yasna, zerocopy, zerocopy-derive, zeroize, zmij
 
 License: GPL-2+
  On Debian systems, the full text of the GNU General Public License version 2
