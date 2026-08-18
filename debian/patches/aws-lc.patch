@@ -7,12 +7,12 @@ Subject: aws-lc-sys: advertise embedded static library to dh-cargo
  1 file changed, 4 insertions(+)
 
 diff --git a/rust-vendor/aws-lc-sys/builder/main.rs b/rust-vendor/aws-lc-sys/builder/main.rs
-index d3cb7f7..37c4904 100644
+index 07a03e7..084151c 100644
 --- a/rust-vendor/aws-lc-sys/builder/main.rs
 +++ b/rust-vendor/aws-lc-sys/builder/main.rs
-@@ -1089,6 +1089,10 @@ fn main() {
+@@ -1369,6 +1369,10 @@ pub(crate) fn emit_source_build_metadata(manifest_dir: &Path) {
+     }
  
-     println!("cargo:rerun-if-changed=builder/");
      println!("cargo:rerun-if-changed=aws-lc/");
 +    let version = env::var("AWS_LC_SYS_VERSION")
 +    .expect("AWS_LC_SYS_VERSION must be set")

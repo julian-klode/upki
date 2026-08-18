@@ -7,7 +7,7 @@ Subject: Exclude rust-vendor directory from workspace
  1 file changed, 1 insertion(+)
 
 diff --git a/Cargo.toml b/Cargo.toml
-index 4d4d13d..24773b4 100644
+index 9a33743..db81620 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -1,5 +1,6 @@
