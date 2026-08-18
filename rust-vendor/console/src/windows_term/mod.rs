@@ -24,9 +24,9 @@ use windows_sys::Win32::System::Console::{
 };
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
-use crate::common_term;
 use crate::kb::Key;
 use crate::term::{Term, TermTarget};
+use crate::{common_term, is_dumb};
 
 #[cfg(feature = "windows-console-colors")]
 mod colors;
@@ -35,11 +35,6 @@ mod colors;
 pub(crate) use self::colors::*;
 
 pub(crate) const DEFAULT_WIDTH: u16 = 79;
-
-pub(crate) fn as_handle(term: &Term) -> HANDLE {
-    // convert between windows_sys::Win32::Foundation::HANDLE and std::os::windows::raw::HANDLE
-    term.as_raw_handle() as HANDLE
-}
 
 pub(crate) fn is_a_terminal(out: &Term) -> bool {
     let (fd, others) = match out.target() {
@@ -72,10 +67,7 @@ pub(crate) fn is_a_color_terminal(out: &Term) -> bool {
         return false;
     }
     if msys_tty_on(out) {
-        return match env::var("TERM") {
-            Ok(term) => term != "dumb",
-            Err(_) => true,
-        };
+        return !is_dumb();
     }
     enable_ansi_on(out)
 }
@@ -196,7 +188,7 @@ pub(crate) fn move_cursor_to(out: &Term, x: usize, y: usize) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::move_cursor_to(out, x, y);
     }
-    if let Some((hand, _)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((hand, _)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         unsafe {
             SetConsoleCursorPosition(
                 hand,
@@ -215,7 +207,7 @@ pub(crate) fn move_cursor_up(out: &Term, n: usize) -> io::Result<()> {
         return common_term::move_cursor_up(out, n);
     }
 
-    if let Some((_, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((_, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         move_cursor_to(out, 0, csbi.dwCursorPosition.Y as usize - n)?;
     }
     Ok(())
@@ -226,7 +218,7 @@ pub(crate) fn move_cursor_down(out: &Term, n: usize) -> io::Result<()> {
         return common_term::move_cursor_down(out, n);
     }
 
-    if let Some((_, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((_, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         move_cursor_to(out, 0, csbi.dwCursorPosition.Y as usize + n)?;
     }
     Ok(())
@@ -237,7 +229,7 @@ pub(crate) fn move_cursor_left(out: &Term, n: usize) -> io::Result<()> {
         return common_term::move_cursor_left(out, n);
     }
 
-    if let Some((_, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((_, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         move_cursor_to(
             out,
             csbi.dwCursorPosition.X as usize - n,
@@ -252,7 +244,7 @@ pub(crate) fn move_cursor_right(out: &Term, n: usize) -> io::Result<()> {
         return common_term::move_cursor_right(out, n);
     }
 
-    if let Some((_, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((_, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         move_cursor_to(
             out,
             csbi.dwCursorPosition.X as usize + n,
@@ -266,7 +258,7 @@ pub(crate) fn clear_line(out: &Term) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::clear_line(out);
     }
-    if let Some((hand, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((hand, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         unsafe {
             let width = csbi.srWindow.Right - csbi.srWindow.Left;
             let pos = COORD {
@@ -286,7 +278,7 @@ pub(crate) fn clear_chars(out: &Term, n: usize) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::clear_chars(out, n);
     }
-    if let Some((hand, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((hand, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         unsafe {
             let width = cmp::min(csbi.dwCursorPosition.X, n as i16);
             let pos = COORD {
@@ -306,7 +298,7 @@ pub(crate) fn clear_screen(out: &Term) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::clear_screen(out);
     }
-    if let Some((hand, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((hand, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         unsafe {
             let cells = csbi.dwSize.X as u32 * csbi.dwSize.Y as u32; // as u32, or else this causes stack overflows.
             let pos = COORD { X: 0, Y: 0 };
@@ -323,7 +315,7 @@ pub(crate) fn clear_to_end_of_screen(out: &Term) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::clear_to_end_of_screen(out);
     }
-    if let Some((hand, csbi)) = get_console_screen_buffer_info(as_handle(out)) {
+    if let Some((hand, csbi)) = get_console_screen_buffer_info(out.as_raw_handle()) {
         unsafe {
             let bottom = csbi.srWindow.Right as u32 * csbi.srWindow.Bottom as u32;
             let cells = bottom - (csbi.dwCursorPosition.X as u32 * csbi.dwCursorPosition.Y as u32); // as u32, or else this causes stack overflows.
@@ -344,7 +336,7 @@ pub(crate) fn show_cursor(out: &Term) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::show_cursor(out);
     }
-    if let Some((hand, mut cci)) = get_console_cursor_info(as_handle(out)) {
+    if let Some((hand, mut cci)) = get_console_cursor_info(out.as_raw_handle()) {
         unsafe {
             cci.bVisible = 1;
             SetConsoleCursorInfo(hand, &cci);
@@ -357,7 +349,7 @@ pub(crate) fn hide_cursor(out: &Term) -> io::Result<()> {
     if out.is_msys_tty {
         return common_term::hide_cursor(out);
     }
-    if let Some((hand, mut cci)) = get_console_cursor_info(as_handle(out)) {
+    if let Some((hand, mut cci)) = get_console_cursor_info(out.as_raw_handle()) {
         unsafe {
             cci.bVisible = 0;
             SetConsoleCursorInfo(hand, &cci);
@@ -410,11 +402,9 @@ pub(crate) fn read_secure() -> io::Result<String> {
             Key::Enter => {
                 break;
             }
-            Key::Char('\x08') => {
-                if !rv.is_empty() {
-                    let new_len = rv.len() - 1;
-                    rv.truncate(new_len);
-                }
+            Key::Char('\x08') if !rv.is_empty() => {
+                let new_len = rv.len() - 1;
+                rv.truncate(new_len);
             }
             Key::Char(c) => {
                 rv.push(c);

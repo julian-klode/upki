@@ -1,5 +1,6 @@
 use alloc::sync::Arc;
 use core::fmt::{Debug, Display};
+use std::env;
 use std::io::{self, Read, Write};
 #[cfg(any(unix, all(target_os = "wasi", target_env = "p1")))]
 use std::os::fd::{AsRawFd, RawFd};
@@ -43,6 +44,25 @@ struct TermInner {
     buffer: Option<Mutex<Vec<u8>>>,
     prompt: RwLock<String>,
     prompt_guard: Mutex<()>,
+}
+
+impl TermInner {
+    fn new(target: TermTarget) -> Self {
+        Self::with_buffer(target, None)
+    }
+
+    fn new_buffered(target: TermTarget) -> Self {
+        Self::with_buffer(target, Some(vec![]))
+    }
+
+    fn with_buffer(target: TermTarget, buffer: Option<Vec<u8>>) -> Self {
+        Self {
+            target,
+            buffer: buffer.map(Mutex::new),
+            prompt: RwLock::new(String::new()),
+            prompt_guard: Mutex::new(()),
+        }
+    }
 }
 
 /// The family of the terminal.
@@ -153,43 +173,23 @@ impl Term {
     /// Return a new unbuffered terminal.
     #[inline]
     pub fn stdout() -> Term {
-        Term::with_inner(TermInner {
-            target: TermTarget::Stdout,
-            buffer: None,
-            prompt: RwLock::new(String::new()),
-            prompt_guard: Mutex::new(()),
-        })
+        Term::with_inner(TermInner::new(TermTarget::Stdout))
     }
 
     /// Return a new unbuffered terminal to stderr.
     #[inline]
     pub fn stderr() -> Term {
-        Term::with_inner(TermInner {
-            target: TermTarget::Stderr,
-            buffer: None,
-            prompt: RwLock::new(String::new()),
-            prompt_guard: Mutex::new(()),
-        })
+        Term::with_inner(TermInner::new(TermTarget::Stderr))
     }
 
     /// Return a new buffered terminal.
     pub fn buffered_stdout() -> Term {
-        Term::with_inner(TermInner {
-            target: TermTarget::Stdout,
-            buffer: Some(Mutex::new(vec![])),
-            prompt: RwLock::new(String::new()),
-            prompt_guard: Mutex::new(()),
-        })
+        Term::with_inner(TermInner::new_buffered(TermTarget::Stdout))
     }
 
     /// Return a new buffered terminal to stderr.
     pub fn buffered_stderr() -> Term {
-        Term::with_inner(TermInner {
-            target: TermTarget::Stderr,
-            buffer: Some(Mutex::new(vec![])),
-            prompt: RwLock::new(String::new()),
-            prompt_guard: Mutex::new(()),
-        })
+        Term::with_inner(TermInner::new_buffered(TermTarget::Stderr))
     }
 
     /// Return a terminal for the given Read/Write pair styled like stderr.
@@ -209,16 +209,11 @@ impl Term {
         R: Read + Debug + AsRawFd + Send + 'static,
         W: Write + Debug + AsRawFd + Send + 'static,
     {
-        Term::with_inner(TermInner {
-            target: TermTarget::ReadWritePair(ReadWritePair {
-                read: Arc::new(Mutex::new(read)),
-                write: Arc::new(Mutex::new(write)),
-                style,
-            }),
-            buffer: None,
-            prompt: RwLock::new(String::new()),
-            prompt_guard: Mutex::new(()),
-        })
+        Term::with_inner(TermInner::new(TermTarget::ReadWritePair(ReadWritePair {
+            read: Arc::new(Mutex::new(read)),
+            write: Arc::new(Mutex::new(write)),
+            style,
+        })))
     }
 
     /// Return the style for this terminal.
@@ -571,6 +566,26 @@ impl Term {
             }
         }
         Ok(())
+    }
+}
+
+/// A fast way to check if the application has a dumb terminal.
+///
+/// On Unix: `TERM` environment variable is not set or set to `dumb`.
+///
+/// On Windows: `TERM` environment variable is explicitly set to `dumb`.
+/// Native windows terminals typically do not set the `TERM` environment variable.
+#[inline]
+pub fn is_dumb() -> bool {
+    #[cfg(windows)]
+    let default = false;
+
+    #[cfg(not(windows))]
+    let default = true;
+
+    match env::var("TERM") {
+        Ok(term) => term == "dumb",
+        Err(_) => default,
     }
 }
 

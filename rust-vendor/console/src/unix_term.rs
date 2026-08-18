@@ -9,6 +9,7 @@ use std::os::fd::{AsRawFd, RawFd};
 #[cfg(not(target_os = "macos"))]
 use std::sync::OnceLock;
 
+use crate::is_dumb;
 use crate::kb::Key;
 use crate::term::Term;
 
@@ -30,10 +31,7 @@ pub(crate) fn is_a_color_terminal(out: &Term) -> bool {
         return false;
     }
 
-    match env::var("TERM") {
-        Ok(term) => term != "dumb",
-        Err(_) => false,
-    }
+    !is_dumb()
 }
 
 pub(crate) fn is_a_true_color_terminal(out: &Term) -> bool {

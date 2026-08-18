@@ -174,8 +174,7 @@ setup_benchmark! {
     }
 
     fn format_odt(ben: &mut Bencher<'_>) {
-        // We can't currently handle escaped line breaks in the format description macro.
-        let format_description = format_description::parse(
+        let format_description = format_description::parse_borrowed::<1>(
             "[year]-[month]-[day] [hour]:[minute]:[second].[subsecond] [offset_hour \
             sign:mandatory]:[offset_minute]:[offset_second]",
         ).expect("invalid format description");

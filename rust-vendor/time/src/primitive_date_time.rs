@@ -5,21 +5,22 @@ use alloc::string::String;
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
+use core::mem::MaybeUninit;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use core::time::Duration as StdDuration;
 #[cfg(feature = "formatting")]
 use std::io;
 
-use powerfmt::ext::FormatterExt as _;
 use powerfmt::smart_display::{self, FormatterOptions, Metadata, SmartDisplay};
 
 #[cfg(feature = "formatting")]
 use crate::formatting::Formattable;
 use crate::internal_macros::{const_try, const_try_opt};
+use crate::num_fmt::str_from_raw_parts;
 #[cfg(feature = "parsing")]
 use crate::parsing::Parsable;
 use crate::{
-    error, util, Date, Duration, Month, OffsetDateTime, Time, UtcDateTime, UtcOffset, Weekday,
+    Date, Duration, Month, OffsetDateTime, Time, UtcDateTime, UtcOffset, Weekday, error, util,
 };
 
 /// Combined date and time.
@@ -43,7 +44,10 @@ pub struct PrimitiveDateTime {
 
 impl Hash for PrimitiveDateTime {
     #[inline]
-    fn hash<H: Hasher>(&self, state: &mut H) {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
         self.as_i128().hash(state);
     }
 }
@@ -368,9 +372,6 @@ impl PrimitiveDateTime {
     }
 
     /// Get the Julian day for the date. The time is not taken into account for this calculation.
-    ///
-    /// The algorithm to perform this conversion is derived from one provided by Peter Baum; it is
-    /// freely available [here](https://www.researchgate.net/publication/316558298_Date_Algorithms).
     ///
     /// ```rust
     /// # use time_macros::datetime;
@@ -817,7 +818,7 @@ impl PrimitiveDateTime {
     /// assert_eq!(datetime!(2022-049 12:00).replace_ordinal(1), Ok(datetime!(2022-001 12:00)));
     /// assert!(datetime!(2022-049 12:00).replace_ordinal(0).is_err()); // 0 isn't a valid ordinal
     /// assert!(datetime!(2022-049 12:00).replace_ordinal(366).is_err()); // 2022 isn't a leap year
-    /// ````
+    /// ```
     #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
     #[inline]
     pub const fn replace_ordinal(self, ordinal: u16) -> Result<Self, error::ComponentRange> {
@@ -825,6 +826,21 @@ impl PrimitiveDateTime {
             date: const_try!(self.date.replace_ordinal(ordinal)),
             time: self.time,
         })
+    }
+
+    /// Truncate to the start of the day, setting the time to midnight.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_day(),
+    ///     datetime!(2022-02-18 0:00)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_day(self) -> Self {
+        self.replace_time(Time::MIDNIGHT)
     }
 
     /// Replace the clock hour.
@@ -846,6 +862,21 @@ impl PrimitiveDateTime {
         })
     }
 
+    /// Truncate to the hour, setting the minute, second, and subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_hour(),
+    ///     datetime!(2022-02-18 15:00)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_hour(self) -> Self {
+        self.replace_time(self.time.truncate_to_hour())
+    }
+
     /// Replace the minutes within the hour.
     ///
     /// ```rust
@@ -865,6 +896,21 @@ impl PrimitiveDateTime {
         })
     }
 
+    /// Truncate to the minute, setting the second and subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_minute(),
+    ///     datetime!(2022-02-18 15:30)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_minute(self) -> Self {
+        self.replace_time(self.time.truncate_to_minute())
+    }
+
     /// Replace the seconds within the minute.
     ///
     /// ```rust
@@ -882,6 +928,21 @@ impl PrimitiveDateTime {
             date: self.date,
             time: const_try!(self.time.replace_second(second)),
         })
+    }
+
+    /// Truncate to the second, setting the subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_second(),
+    ///     datetime!(2022-02-18 15:30:45)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_second(self) -> Self {
+        self.replace_time(self.time.truncate_to_second())
     }
 
     /// Replace the milliseconds within the second.
@@ -906,6 +967,21 @@ impl PrimitiveDateTime {
         })
     }
 
+    /// Truncate to the millisecond, setting the microsecond and nanosecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_millisecond(),
+    ///     datetime!(2022-02-18 15:30:45.123)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_millisecond(self) -> Self {
+        self.replace_time(self.time.truncate_to_millisecond())
+    }
+
     /// Replace the microseconds within the second.
     ///
     /// ```rust
@@ -926,6 +1002,21 @@ impl PrimitiveDateTime {
             date: self.date,
             time: const_try!(self.time.replace_microsecond(microsecond)),
         })
+    }
+
+    /// Truncate to the microsecond, setting the nanosecond component to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::datetime;
+    /// assert_eq!(
+    ///     datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_microsecond(),
+    ///     datetime!(2022-02-18 15:30:45.123_456)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `PrimitiveDateTime`."]
+    #[inline]
+    pub const fn truncate_to_microsecond(self) -> Self {
+        self.replace_time(self.time.truncate_to_microsecond())
     }
 
     /// Replace the nanoseconds within the second.
@@ -958,7 +1049,7 @@ impl PrimitiveDateTime {
         output: &mut (impl io::Write + ?Sized),
         format: &(impl Formattable + ?Sized),
     ) -> Result<usize, error::Format> {
-        format.format_into(output, Some(self.date), Some(self.time), None)
+        format.format_into(output, &self, &mut Default::default())
     }
 
     /// Format the `PrimitiveDateTime` using the provided [format
@@ -967,7 +1058,9 @@ impl PrimitiveDateTime {
     /// ```rust
     /// # use time::format_description;
     /// # use time_macros::datetime;
-    /// let format = format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]")?;
+    /// let format = format_description::parse_borrowed::<3>(
+    ///     "[year]-[month]-[day] [hour]:[minute]:[second]"
+    /// )?;
     /// assert_eq!(
     ///     datetime!(2020-01-02 03:04:05).format(&format)?,
     ///     "2020-01-02 03:04:05"
@@ -976,7 +1069,7 @@ impl PrimitiveDateTime {
     /// ```
     #[inline]
     pub fn format(self, format: &(impl Formattable + ?Sized)) -> Result<String, error::Format> {
-        format.format(Some(self.date), Some(self.time), None)
+        format.format(&self, &mut Default::default())
     }
 }
 
@@ -1004,6 +1097,9 @@ impl PrimitiveDateTime {
     }
 }
 
+// This no longer needs special handling, as the format is fixed and doesn't require anything
+// advanced. Trait impls can't be deprecated and the info is still useful for other types
+// implementing `SmartDisplay`, so leave it as-is for now.
 impl SmartDisplay for PrimitiveDateTime {
     type Metadata = ();
 
@@ -1014,22 +1110,45 @@ impl SmartDisplay for PrimitiveDateTime {
     }
 
     #[inline]
-    fn fmt_with_metadata(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        metadata: Metadata<Self>,
-    ) -> fmt::Result {
-        f.pad_with_width(
-            metadata.unpadded_width(),
-            format_args!("{} {}", self.date, self.time),
-        )
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl PrimitiveDateTime {
+    /// The maximum number of bytes that the `fmt_into_buffer` method will write, which is also used
+    /// for the `Display` implementation.
+    pub(crate) const DISPLAY_BUFFER_SIZE: usize =
+        Date::DISPLAY_BUFFER_SIZE + Time::DISPLAY_BUFFER_SIZE + 1;
+
+    /// Format the `PrimitiveDateTime` into the provided buffer, returning the number of bytes
+    /// written.
+    #[inline]
+    pub(crate) fn fmt_into_buffer(
+        self,
+        buf: &mut [MaybeUninit<u8>; Self::DISPLAY_BUFFER_SIZE],
+    ) -> usize {
+        // Safety: The buffer is large enough that the first chunk is in bounds.
+        let date_len = self
+            .date
+            .fmt_into_buffer(unsafe { buf.first_chunk_mut().unwrap_unchecked() });
+        buf[date_len].write(b' ');
+        // Safety: The buffer is large enough that the first chunk is in bounds.
+        let time_len = self
+            .time
+            .fmt_into_buffer(unsafe { buf[date_len + 1..].first_chunk_mut().unwrap_unchecked() });
+        date_len + time_len + 1
     }
 }
 
 impl fmt::Display for PrimitiveDateTime {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        SmartDisplay::fmt(self, f)
+        let mut buf = [MaybeUninit::uninit(); Self::DISPLAY_BUFFER_SIZE];
+        let len = self.fmt_into_buffer(&mut buf);
+        // Safety: All bytes up to `len` have been initialized with ASCII characters.
+        let s = unsafe { str_from_raw_parts(buf.as_ptr().cast(), len) };
+        f.pad(s)
     }
 }
 
@@ -1163,11 +1282,7 @@ impl SubAssign<StdDuration> for PrimitiveDateTime {
 impl Sub for PrimitiveDateTime {
     type Output = Duration;
 
-    /// # Panics
-    ///
-    /// This may panic if an overflow occurs.
     #[inline]
-    #[track_caller]
     fn sub(self, rhs: Self) -> Self::Output {
         (self.date - rhs.date) + (self.time - rhs.time)
     }

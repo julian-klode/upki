@@ -1,10 +1,10 @@
 [dependencies.js-sys]
 default-features = false
-version = "=0.3.99"
+version = "=0.3.103"
 
 [dependencies.wasm-bindgen]
 default-features = false
-version = "=0.2.122"
+version = "=0.2.126"
 
 [features]
 AbortController = []
@@ -1752,7 +1752,7 @@ name = "web-sys"
 readme = "README.md"
 repository = "https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/web-sys"
 rust-version = "1.77"
-version = "0.3.99"
+version = "0.3.103"
 
 [package.metadata.docs.rs]
 all-features = true

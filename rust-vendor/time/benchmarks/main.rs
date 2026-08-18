@@ -98,6 +98,7 @@ mods![
     mod instant;
     mod month;
     mod offset_date_time;
+    mod parse_format_description;
     mod parsing;
     mod primitive_date_time;
     mod rand08;
@@ -107,3 +108,12 @@ mods![
     mod util;
     mod weekday;
 ];
+
+/// Shuffle a slice in a random but deterministic manner.
+fn shuffle<T, const N: usize>(mut slice: [T; N]) -> [T; N] {
+    use ::rand09::prelude::*;
+
+    let mut seed = SmallRng::seed_from_u64(0);
+    slice.shuffle(&mut seed);
+    slice
+}

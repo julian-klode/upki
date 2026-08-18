@@ -10,7 +10,7 @@ use assert_matches::assert_matches;
 use aws_lc_rs::hmac;
 use bytes::{Bytes, BytesMut};
 use hex_literal::hex;
-use rand::RngCore;
+use rand::Rng;
 #[cfg(feature = "ring")]
 use ring::hmac;
 #[cfg(all(feature = "rustls-aws-lc-rs", not(feature = "rustls-ring")))]
@@ -3065,6 +3065,30 @@ fn pure_sender_voluntarily_acks() {
 
     let receiver_acks_final = pair.server_conn_mut(server_ch).stats().frame_rx.acks;
     assert!(receiver_acks_final > receiver_acks_initial);
+}
+
+/// Initials rejected under saturation (here via `max_incoming(0)`) are dropped without
+/// sending a response: the client times out rather than receiving a CONNECTION_REFUSED.
+#[test]
+fn silently_drop_rejected_initials() {
+    let _guard = subscribe();
+    let mut server_config = server_config();
+    server_config.max_incoming(0);
+    let mut pair = Pair::new(Arc::new(EndpointConfig::default()), server_config);
+
+    let client_ch = pair.begin_connect(client_config());
+    pair.drive();
+    pair.server.assert_no_accept();
+    // `drive()` stops once the client's only remaining timer is its idle timeout; advance
+    // past it so the unanswered attempt gives up.
+    pair.time += Duration::from_secs(60);
+    pair.drive();
+    assert_matches!(
+        pair.client_conn_mut(client_ch).poll(),
+        Some(Event::ConnectionLost {
+            reason: ConnectionError::TimedOut,
+        })
+    );
 }
 
 #[test]

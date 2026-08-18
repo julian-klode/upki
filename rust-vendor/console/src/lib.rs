@@ -89,7 +89,7 @@ extern crate alloc;
 pub use crate::kb::Key;
 #[cfg(feature = "std")]
 pub use crate::term::{
-    user_attended, user_attended_stderr, Term, TermFamily, TermFeatures, TermTarget,
+    is_dumb, user_attended, user_attended_stderr, Term, TermFamily, TermFeatures, TermTarget,
 };
 #[cfg(feature = "std")]
 pub use crate::utils::{

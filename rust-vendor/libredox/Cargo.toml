@@ -16,7 +16,7 @@ version = "0.2"
 
 [dependencies.redox_syscall]
 optional = true
-version = "0.8"
+version = "0.9"
 
 [features]
 base = ["libc"]
@@ -44,4 +44,4 @@ license = "MIT"
 name = "libredox"
 readme = false
 repository = "https://gitlab.redox-os.org/redox-os/libredox.git"
-version = "0.1.17"
+version = "0.1.18"

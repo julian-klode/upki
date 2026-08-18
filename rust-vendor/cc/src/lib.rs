@@ -74,7 +74,7 @@
 //!   wrapper via `sccache cc`. This compiler must understand the `-c` flag. For
 //!   certain `TARGET`s, it also is assumed to know about other flags (most
 //!   common is `-fPIC`).
-//!   ccache, distcc, sccache, icecc, cachepot and buildcache are supported,
+//!   ccache, distcc, sccache, icecc, cachepot, buildcache and kache are supported,
 //!   for sccache, simply set `CC` to `sccache cc`.
 //!   For other custom `CC` wrapper, just set `CC_KNOWN_WRAPPER_CUSTOM`
 //!   to the custom wrapper used in `CC`.
@@ -101,8 +101,9 @@
 //! * `RUSTC_WRAPPER` - If set, the specified command will be prefixed to the compiler
 //!   command. This is useful for projects that want to use
 //!   [sccache](https://github.com/mozilla/sccache),
-//!   [buildcache](https://gitlab.com/bits-n-bites/buildcache), or
-//!   [cachepot](https://github.com/paritytech/cachepot).
+//!   [buildcache](https://gitlab.com/bits-n-bites/buildcache),
+//!   [cachepot](https://github.com/paritytech/cachepot), or
+//!   [kache](https://github.com/kunobi-ninja/kache).
 //!
 //! Furthermore, projects using this crate may specify custom environment variables
 //! to be inspected, for example via the `Build::try_flags_from_environment`
@@ -2176,10 +2177,10 @@ impl Build {
                     }
                 }
 
-                if target.os == "nto" {
+                if target.os == "nto" || target.os == "qnx" {
                     // Select the target with `-V`, see qcc documentation:
-                    // QNX 7.1: https://www.qnx.com/developers/docs/7.1/index.html#com.qnx.doc.neutrino.utilities/topic/q/qcc.html
-                    // QNX 8.0: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
+                    // QNX SDP 7.1: https://www.qnx.com/developers/docs/7.1/index.html#com.qnx.doc.neutrino.utilities/topic/q/qcc.html
+                    // QNX SDP 8.0: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
                     // This assumes qcc/q++ as compiler, which is currently the only supported compiler for QNX.
                     // See for details: https://github.com/rust-lang/cc-rs/pull/1319
                     let arg = match target.full_arch {
@@ -2444,63 +2445,93 @@ impl Build {
                     cmd.args.push("-Wl,-melf_i386".into());
                 }
 
+                //
+                // Arm Target Details
+                //
+
+                // Set Float ABI for all Arm bare-metal targets using EABIHF
                 if target.arch == "arm" && target.os == "none" && target.abi == "eabihf" {
                     cmd.args.push("-mfloat-abi=hard".into())
                 }
+                // Set -mthumb for all Thumb targets
                 if target.full_arch.starts_with("thumb") {
                     cmd.args.push("-mthumb".into());
                 }
+                // Armv6-M targets (no FPU available)
                 if target.full_arch.starts_with("thumbv6m") {
+                    // ARMv6S-M is an old name for "ARMv6-M with SVC support"
+                    // before SVC support became mandatory. Some versions of GAS care
+                    // about the difference.
                     cmd.args.push("-march=armv6s-m".into());
                 }
+                // Armv7-M targets (no FPU available)
+                if target.full_arch.starts_with("thumbv7m") {
+                    cmd.args.push("-march=armv7-m".into());
+                }
+                // Armv7E-M targets
                 if target.full_arch.starts_with("thumbv7em") {
                     cmd.args.push("-march=armv7e-m".into());
-
                     if target.abi == "eabihf" {
                         cmd.args.push("-mfpu=fpv4-sp-d16".into())
                     }
                 }
-                if target.full_arch.starts_with("thumbv7m") {
-                    cmd.args.push("-march=armv7-m".into());
-                }
+                // Armv8-M Baseline (no FPU available)
                 if target.full_arch.starts_with("thumbv8m.base") {
                     cmd.args.push("-march=armv8-m.base".into());
                 }
+                // Armv8-M Mainline targets
                 if target.full_arch.starts_with("thumbv8m.main") {
                     cmd.args.push("-march=armv8-m.main".into());
-
                     if target.abi == "eabihf" {
                         cmd.args.push("-mfpu=fpv5-sp-d16".into())
                     }
                 }
-                if target.full_arch.starts_with("armebv7r") | target.full_arch.starts_with("armv7r")
+                // ARMv6 targets
+                if target.full_arch.starts_with("armv6")
+                    || (target.full_arch.starts_with("thumbv6")
+                        && !target.full_arch.starts_with("thumbv6m"))
+                {
+                    cmd.args.push("-march=armv6".into());
+                    if target.abi == "eabihf" {
+                        // lowest common denominator FPU
+                        cmd.args.push("-mfpu=vfpv2".into());
+                    }
+                }
+                // ARMv7-R targets
+                if target.full_arch.starts_with("armebv7r")
+                    || target.full_arch.starts_with("armv7r")
+                    || target.full_arch.starts_with("thumbv7r")
                 {
                     if target.full_arch.starts_with("armeb") {
                         cmd.args.push("-mbig-endian".into());
-                    } else {
-                        cmd.args.push("-mlittle-endian".into());
                     }
-
-                    // ARM mode
-                    cmd.args.push("-marm".into());
-
-                    // R Profile
                     cmd.args.push("-march=armv7-r".into());
-
                     if target.abi == "eabihf" {
                         // lowest common denominator FPU
                         // (see Cortex-R4 technical reference manual)
                         cmd.args.push("-mfpu=vfpv3-d16".into())
                     }
                 }
-                if target.full_arch.starts_with("armv7a") {
+                // Armv7-A targets
+                if target.full_arch.starts_with("armv7a")
+                    || target.full_arch.starts_with("thumbv7a")
+                {
                     cmd.args.push("-march=armv7-a".into());
-
                     if target.abi == "eabihf" {
                         // lowest common denominator FPU
                         cmd.args.push("-mfpu=vfpv3-d16".into());
                     }
                 }
+                // Armv8-R targets
+                if target.full_arch.starts_with("armv8r")
+                    || target.full_arch.starts_with("thumbv8r")
+                {
+                    cmd.args.push("-march=armv8-r".into());
+                    if target.abi == "eabihf" {
+                        cmd.args.push("-mfpu=fp-armv8".into())
+                    }
+                }
+
                 if target.arch == "riscv32" || target.arch == "riscv64" {
                     // get the 32i/32imac/32imc/64gc/64imac/... part
                     let arch = &target.full_arch[5..];
@@ -3050,7 +3081,7 @@ impl Build {
                     format!("arm-kmc-eabi-{gnu}").into()
                 } else if target.arch == "aarch64" && target.vendor == "kmc" {
                     format!("aarch64-kmc-elf-{gnu}").into()
-                } else if target.os == "nto" {
+                } else if target.os == "nto" || target.os == "qnx" {
                     // See for details: https://github.com/rust-lang/cc-rs/pull/1319
                     if self.cpp { "q++" } else { "qcc" }.into()
                 } else if self.get_is_cross_compile()? {
@@ -3195,7 +3226,7 @@ impl Build {
         // No explicit CC wrapper was detected, but check if RUSTC_WRAPPER
         // is defined and is a build accelerator that is compatible with
         // C/C++ compilers (e.g. sccache)
-        const VALID_WRAPPERS: &[&str] = &["sccache", "cachepot", "buildcache"];
+        const VALID_WRAPPERS: &[&str] = &["sccache", "cachepot", "buildcache", "kache"];
 
         let rustc_wrapper = cargo_env_var_os("RUSTC_WRAPPER")?;
         let wrapper_path = Path::new(&rustc_wrapper);
@@ -3252,6 +3283,7 @@ impl Build {
             "icecc",
             "cachepot",
             "buildcache",
+            "kache",
         ];
         let custom_wrapper = self.get_env("CC_KNOWN_WRAPPER_CUSTOM");
         if custom_wrapper.is_some() {
@@ -3520,10 +3552,10 @@ impl Build {
                 } else if target.os == "vxworks" {
                     name = format!("wr-{tool}").into();
                     self.cmd(&name)
-                } else if target.os == "nto" {
+                } else if target.os == "nto" || target.os == "qnx" {
                     // Ref: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/a/ar.html
                     name = match target.full_arch {
-                        "i586" => format!("ntox86-{tool}").into(),
+                        "i686" | "i586" => format!("ntox86-{tool}").into(),
                         "x86" | "aarch64" | "x86_64" => {
                             format!("nto{}-{}", target.arch, tool).into()
                         }
@@ -3708,6 +3740,10 @@ impl Build {
                     "sparc64-unknown-linux-gnu" => Some("sparc64-linux-gnu"),
                     "sparc64-unknown-netbsd" => Some("sparc64--netbsd"),
                     "sparcv9-sun-solaris" => Some("sparcv9-sun-solaris"),
+                    "armv4t-none-eabi" => Some("arm-none-eabi"),
+                    "armv5te-none-eabi" => Some("arm-none-eabi"),
+                    "armv6-none-eabi" => Some("arm-none-eabi"),
+                    "armv6-none-eabihf" => Some("arm-none-eabi"),
                     "armv7a-none-eabi" => Some("arm-none-eabi"),
                     "armv7a-none-eabihf" => Some("arm-none-eabi"),
                     "armebv7r-none-eabi" => Some("arm-none-eabi"),
@@ -3715,6 +3751,14 @@ impl Build {
                     "armv7r-none-eabi" => Some("arm-none-eabi"),
                     "armv7r-none-eabihf" => Some("arm-none-eabi"),
                     "armv8r-none-eabihf" => Some("arm-none-eabi"),
+                    "thumbv4t-none-eabi" => Some("arm-none-eabi"),
+                    "thumbv5te-none-eabi" => Some("arm-none-eabi"),
+                    "thumbv6-none-eabi" => Some("arm-none-eabi"),
+                    "thumbv7a-none-eabi" => Some("arm-none-eabi"),
+                    "thumbv7a-none-eabihf" => Some("arm-none-eabi"),
+                    "thumbv7r-none-eabi" => Some("arm-none-eabi"),
+                    "thumbv7r-none-eabihf" => Some("arm-none-eabi"),
+                    "thumbv8r-none-eabihf" => Some("arm-none-eabi"),
                     "thumbv6m-none-eabi" => Some("arm-none-eabi"),
                     "thumbv7em-none-eabi" => Some("arm-none-eabi"),
                     "thumbv7em-none-eabihf" => Some("arm-none-eabi"),

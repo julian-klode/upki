@@ -11,10 +11,16 @@
 
 [package]
 edition = "2021"
-rust-version = "1.57.0"
+rust-version = "1.68.0"
 name = "insta-cmd"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A command line extension to the insta testing library for Rust"
 homepage = "https://insta.rs/"
 readme = "README.md"
@@ -26,6 +32,18 @@ keywords = [
 ]
 license = "Apache-2.0"
 repository = "https://github.com/mitsuhiko/insta-cmd"
+
+[lib]
+name = "insta_cmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hello"
+path = "src/bin/hello.rs"
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
 
 [dependencies.insta]
 version = "1.29.0"

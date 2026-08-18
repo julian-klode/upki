@@ -1,7 +1,7 @@
 [package]
 name = "codspeed-criterion-compat"
-version = "4.7.0"
-rust-version = "1.74" # MSRV
+version = "5.0.1"
+rust-version = "1.85" # MSRV
 edition = "2021"
 description = "Criterion.rs compatibility layer for CodSpeed"
 authors = ["Arthur Pastel <arthur@codspeed.io>"]
@@ -17,9 +17,9 @@ categories = [
 ]
 keywords = ["codspeed", "benchmark", "criterion"]
 [dependencies]
-criterion = { package = "codspeed-criterion-compat-walltime", path = "./criterion_fork", version = "=4.7.0", default-features = false }
-codspeed = { path = "../codspeed", version = "=4.7.0" }
-colored = "2.1.0"
+criterion = { package = "codspeed-criterion-compat-walltime", path = "./criterion_fork", version = "=5.0.1", default-features = false }
+codspeed = { path = "../codspeed", version = "=5.0.1" }
+colored = "3.0.0"
 clap = { version = "4", default-features = false, features = ["std"] }
 regex = { version = "1.5", default-features = false, features = ["std"] }
 
@@ -67,4 +67,8 @@ harness = false
 
 [[bench]]
 name = "test_benches"
+harness = false
+
+[[bench]]
+name = "custom_main"
 harness = false

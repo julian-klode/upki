@@ -348,6 +348,9 @@ impl LanguageBackend for CythonLanguageBackend<'_> {
                     if let Some(known) = to_known_assoc_constant(path, name) {
                         return write!(out, "{known}");
                     }
+                    if let Some(variant) = out.bindings().enum_variant_reference(path, name) {
+                        return write!(out, "{variant}");
+                    }
                     write!(out, "{export_name}_")
                 }
                 write!(out, "{name}")
@@ -380,6 +383,14 @@ impl LanguageBackend for CythonLanguageBackend<'_> {
                 self.write_type(out, ty);
                 out.write(">");
                 self.write_literal(out, value);
+            }
+            Literal::Array { ref items } => {
+                write!(out, "[ ");
+                for item in items {
+                    self.write_literal(out, item);
+                    write!(out, ", ");
+                }
+                write!(out, "]");
             }
             Literal::Struct {
                 export_name,

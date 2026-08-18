@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.85"
 name = "codspeed"
-version = "4.7.0"
+version = "5.0.1"
 authors = ["Arthur Pastel <arthur@codspeed.io>"]
 build = "build.rs"
 autolib = false
@@ -50,10 +50,10 @@ harness = false
 version = "1.0.97"
 
 [dependencies.colored]
-version = "2.0.0"
+version = "3.0.0"
 
 [dependencies.getrandom]
-version = "0.2"
+version = "0.4"
 
 [dependencies.glob]
 version = "0.3.2"
@@ -80,4 +80,4 @@ default-features = false
 version = "3.7.0"
 
 [build-dependencies.cc]
-version = "1.0"
+version = "1.2.40"

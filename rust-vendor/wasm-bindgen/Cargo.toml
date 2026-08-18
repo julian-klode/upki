@@ -18,10 +18,10 @@ optional = true
 version = "1.0"
 
 [dependencies.wasm-bindgen-macro]
-version = "=0.2.122"
+version = "=0.2.126"
 
 [dependencies.wasm-bindgen-shared]
-version = "=0.2.122"
+version = "=0.2.126"
 
 [dev-dependencies.once_cell]
 version = "1"
@@ -55,7 +55,7 @@ uninlined_format_args = "warn"
 unused_lifetimes = "warn"
 
 [lints.rust.unexpected_cfgs]
-check-cfg = ["cfg(wasm_bindgen_unstable_test_coverage)", "cfg(wasm_bindgen_use_js_sys)", "cfg(xxx_debug_only_print_generated_code)"]
+check-cfg = ["cfg(wasm_bindgen_unstable_test_coverage)", "cfg(wasm_bindgen_use_js_sys)", "cfg(xxx_debug_only_print_generated_code)", "cfg(legacy_eh)"]
 level = "warn"
 priority = 0
 
@@ -79,7 +79,7 @@ name = "wasm-bindgen"
 readme = "README.md"
 repository = "https://github.com/wasm-bindgen/wasm-bindgen"
 rust-version = "1.77"
-version = "0.2.122"
+version = "0.2.126"
 
 [package.metadata.docs.rs]
 features = ["serde-serialize"]

@@ -9,7 +9,7 @@
 /// ```rust
 /// # use time::{Date, Weekday::*, Month, macros::date};
 /// assert_eq!(
-///     date!(2020 - W 01 - 3),
+///     date!(2020-W01-3),
 ///     Date::from_iso_week_date(2020, 1, Wednesday)?
 /// );
 /// assert_eq!(date!(2020-001), Date::from_ordinal_date(2020, 1)?);
@@ -64,7 +64,7 @@ pub use time_macros::datetime;
 /// # use time::{format_description, macros::format_description};
 /// assert_eq!(
 ///     format_description!("[hour]:[minute]:[second]"),
-///     format_description::parse("[hour]:[minute]:[second]")?
+///     format_description::parse_borrowed::<2>("[hour]:[minute]:[second]")?
 /// );
 /// # Ok::<_, time::Error>(())
 /// ```

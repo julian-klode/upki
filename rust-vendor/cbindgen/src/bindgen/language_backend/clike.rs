@@ -840,6 +840,14 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
     fn write_literal<W: Write>(&mut self, out: &mut SourceWriter<W>, l: &Literal) {
         match l {
             Literal::Expr(v) => write!(out, "{v}"),
+            Literal::Array { items } => {
+                write!(out, "{{ ");
+                for item in items {
+                    self.write_literal(out, item);
+                    write!(out, ", ");
+                }
+                write!(out, "}}");
+            }
             Literal::Path {
                 ref associated_to,
                 ref name,
@@ -847,6 +855,9 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                 if let Some((ref path, ref export_name)) = associated_to {
                     if let Some(known) = to_known_assoc_constant(path, name) {
                         return write!(out, "{known}");
+                    }
+                    if let Some(variant) = out.bindings().enum_variant_reference(path, name) {
+                        return write!(out, "{variant}");
                     }
                     let path_separator = if self.config.language == Language::C {
                         "_"

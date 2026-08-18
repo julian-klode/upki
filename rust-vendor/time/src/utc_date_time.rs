@@ -3,24 +3,26 @@
 #[cfg(feature = "formatting")]
 use alloc::string::String;
 use core::fmt;
+use core::mem::MaybeUninit;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use core::time::Duration as StdDuration;
 #[cfg(feature = "formatting")]
 use std::io;
 
-use deranged::RangedI64;
-use powerfmt::ext::FormatterExt as _;
-use powerfmt::smart_display::{self, FormatterOptions, Metadata, SmartDisplay};
+use deranged::ri64;
+use powerfmt::smart_display::{FormatterOptions, Metadata, SmartDisplay};
 
-use crate::convert::*;
 use crate::date::{MAX_YEAR, MIN_YEAR};
 #[cfg(feature = "formatting")]
 use crate::formatting::Formattable;
 use crate::internal_macros::{carry, cascade, const_try, const_try_opt, div_floor, ensure_ranged};
+use crate::num_fmt::str_from_raw_parts;
 #[cfg(feature = "parsing")]
 use crate::parsing::Parsable;
+use crate::unit::*;
+use crate::util::days_in_year;
 use crate::{
-    error, util, Date, Duration, Month, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, Weekday,
+    Date, Duration, Month, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset, Weekday, error,
 };
 
 /// The Julian day of the Unix epoch.
@@ -190,7 +192,7 @@ impl UtcDateTime {
     #[inline]
     pub const fn from_unix_timestamp(timestamp: i64) -> Result<Self, error::ComponentRange> {
         type Timestamp =
-            RangedI64<{ UtcDateTime::MIN.unix_timestamp() }, { UtcDateTime::MAX.unix_timestamp() }>;
+            ri64<{ UtcDateTime::MIN.unix_timestamp() }, { UtcDateTime::MAX.unix_timestamp() }>;
         ensure_ranged!(Timestamp: timestamp);
 
         // Use the unchecked method here, as the input validity has already been verified.
@@ -327,33 +329,33 @@ impl UtcDateTime {
     #[inline]
     pub(crate) const fn to_offset_raw(self, offset: UtcOffset) -> (i32, u16, Time) {
         let (second, carry) = carry!(@most_once
-            self.second() as i8 + offset.seconds_past_minute(),
+            self.second().cast_signed() + offset.seconds_past_minute(),
             0..Second::per_t(Minute)
         );
         let (minute, carry) = carry!(@most_once
-            self.minute() as i8 + offset.minutes_past_hour() + carry,
+            self.minute().cast_signed() + offset.minutes_past_hour() + carry,
             0..Minute::per_t(Hour)
         );
         let (hour, carry) = carry!(@most_twice
-            self.hour() as i8 + offset.whole_hours() + carry,
+            self.hour().cast_signed() + offset.whole_hours() + carry,
             0..Hour::per_t(Day)
         );
         let (mut year, ordinal) = self.to_ordinal_date();
-        let mut ordinal = ordinal as i16 + carry;
+        let mut ordinal = ordinal.cast_signed() + carry;
         cascade!(ordinal => year);
 
         debug_assert!(ordinal > 0);
-        debug_assert!(ordinal <= util::days_in_year(year) as i16);
+        debug_assert!(ordinal <= days_in_year(year).cast_signed());
 
         (
             year,
-            ordinal as u16,
+            ordinal.cast_unsigned(),
             // Safety: The cascades above ensure the values are in range.
             unsafe {
                 Time::__from_hms_nanos_unchecked(
-                    hour as u8,
-                    minute as u8,
-                    second as u8,
+                    hour.cast_unsigned(),
+                    minute.cast_unsigned(),
+                    second.cast_unsigned(),
                     self.nanosecond(),
                 )
             },
@@ -600,9 +602,6 @@ impl UtcDateTime {
 
     /// Get the Julian day for the date. The time is not taken into account for this calculation.
     ///
-    /// The algorithm to perform this conversion is derived from one provided by Peter Baum; it is
-    /// freely available [here](https://www.researchgate.net/publication/316558298_Date_Algorithms).
-    ///
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(utc_datetime!(-4713-11-24 0:00).to_julian_day(), 0);
@@ -770,15 +769,15 @@ impl UtcDateTime {
     /// assert_eq!(UtcDateTime::MIN.checked_add((-2).days()), None);
     /// assert_eq!(UtcDateTime::MAX.checked_add(1.days()), None);
     /// assert_eq!(
-    ///     utc_datetime!(2019 - 11 - 25 15:30).checked_add(27.hours()),
-    ///     Some(utc_datetime!(2019 - 11 - 26 18:30))
+    ///     utc_datetime!(2019-11-25 15:30).checked_add(27.hours()),
+    ///     Some(utc_datetime!(2019-11-26 18:30))
     /// );
     /// ```
     #[inline]
     pub const fn checked_add(self, duration: Duration) -> Option<Self> {
-        Some(Self::from_primitive(const_try_opt!(self
-            .inner
-            .checked_add(duration))))
+        Some(Self::from_primitive(const_try_opt!(
+            self.inner.checked_add(duration)
+        )))
     }
 
     /// Computes `self - duration`, returning `None` if an overflow occurred.
@@ -789,15 +788,15 @@ impl UtcDateTime {
     /// assert_eq!(UtcDateTime::MIN.checked_sub(2.days()), None);
     /// assert_eq!(UtcDateTime::MAX.checked_sub((-1).days()), None);
     /// assert_eq!(
-    ///     utc_datetime!(2019 - 11 - 25 15:30).checked_sub(27.hours()),
-    ///     Some(utc_datetime!(2019 - 11 - 24 12:30))
+    ///     utc_datetime!(2019-11-25 15:30).checked_sub(27.hours()),
+    ///     Some(utc_datetime!(2019-11-24 12:30))
     /// );
     /// ```
     #[inline]
     pub const fn checked_sub(self, duration: Duration) -> Option<Self> {
-        Some(Self::from_primitive(const_try_opt!(self
-            .inner
-            .checked_sub(duration))))
+        Some(Self::from_primitive(const_try_opt!(
+            self.inner.checked_sub(duration)
+        )))
     }
 
     /// Computes `self + duration`, saturating value on overflow.
@@ -814,8 +813,8 @@ impl UtcDateTime {
     ///     UtcDateTime::MAX
     /// );
     /// assert_eq!(
-    ///     utc_datetime!(2019 - 11 - 25 15:30).saturating_add(27.hours()),
-    ///     utc_datetime!(2019 - 11 - 26 18:30)
+    ///     utc_datetime!(2019-11-25 15:30).saturating_add(27.hours()),
+    ///     utc_datetime!(2019-11-26 18:30)
     /// );
     /// ```
     #[inline]
@@ -837,8 +836,8 @@ impl UtcDateTime {
     ///     UtcDateTime::MAX
     /// );
     /// assert_eq!(
-    ///     utc_datetime!(2019 - 11 - 25 15:30).saturating_sub(27.hours()),
-    ///     utc_datetime!(2019 - 11 - 24 12:30)
+    ///     utc_datetime!(2019-11-25 15:30).saturating_sub(27.hours()),
+    ///     utc_datetime!(2019-11-24 12:30)
     /// );
     /// ```
     #[inline]
@@ -884,18 +883,18 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 12:00).replace_year(2019),
-    ///     Ok(utc_datetime!(2019 - 02 - 18 12:00))
+    ///     utc_datetime!(2022-02-18 12:00).replace_year(2019),
+    ///     Ok(utc_datetime!(2019-02-18 12:00))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 12:00).replace_year(-1_000_000_000).is_err()); // -1_000_000_000 isn't a valid year
-    /// assert!(utc_datetime!(2022 - 02 - 18 12:00).replace_year(1_000_000_000).is_err()); // 1_000_000_000 isn't a valid year
+    /// assert!(utc_datetime!(2022-02-18 12:00).replace_year(-1_000_000_000).is_err()); // -1_000_000_000 isn't a valid year
+    /// assert!(utc_datetime!(2022-02-18 12:00).replace_year(1_000_000_000).is_err()); // 1_000_000_000 isn't a valid year
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_year(self, year: i32) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_year(year))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_year(year)
+        )))
     }
 
     /// Replace the month of the year.
@@ -904,17 +903,17 @@ impl UtcDateTime {
     /// # use time_macros::utc_datetime;
     /// # use time::Month;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 12:00).replace_month(Month::January),
-    ///     Ok(utc_datetime!(2022 - 01 - 18 12:00))
+    ///     utc_datetime!(2022-02-18 12:00).replace_month(Month::January),
+    ///     Ok(utc_datetime!(2022-01-18 12:00))
     /// );
-    /// assert!(utc_datetime!(2022 - 01 - 30 12:00).replace_month(Month::February).is_err()); // 30 isn't a valid day in February
+    /// assert!(utc_datetime!(2022-01-30 12:00).replace_month(Month::February).is_err()); // 30 isn't a valid day in February
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_month(self, month: Month) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_month(month))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_month(month)
+        )))
     }
 
     /// Replace the day of the month.
@@ -922,18 +921,18 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 12:00).replace_day(1),
-    ///     Ok(utc_datetime!(2022 - 02 - 01 12:00))
+    ///     utc_datetime!(2022-02-18 12:00).replace_day(1),
+    ///     Ok(utc_datetime!(2022-02-01 12:00))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 12:00).replace_day(0).is_err()); // 00 isn't a valid day
-    /// assert!(utc_datetime!(2022 - 02 - 18 12:00).replace_day(30).is_err()); // 30 isn't a valid day in February
+    /// assert!(utc_datetime!(2022-02-18 12:00).replace_day(0).is_err()); // 00 isn't a valid day
+    /// assert!(utc_datetime!(2022-02-18 12:00).replace_day(30).is_err()); // 30 isn't a valid day in February
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_day(self, day: u8) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_day(day))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_day(day)
+        )))
     }
 
     /// Replace the day of the year.
@@ -947,9 +946,24 @@ impl UtcDateTime {
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_ordinal(self, ordinal: u16) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_ordinal(ordinal))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_ordinal(ordinal)
+        )))
+    }
+
+    /// Truncate to the start of the day, setting the time to midnight.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_day(),
+    ///     utc_datetime!(2022-02-18 0:00)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_day(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_day())
     }
 
     /// Replace the clock hour.
@@ -957,17 +971,32 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_hour(7),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 07:02:03.004_005_006))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_hour(7),
+    ///     Ok(utc_datetime!(2022-02-18 07:02:03.004_005_006))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_hour(24).is_err()); // 24 isn't a valid hour
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_hour(24).is_err()); // 24 isn't a valid hour
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_hour(self, hour: u8) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_hour(hour))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_hour(hour)
+        )))
+    }
+
+    /// Truncate to the hour, setting the minute, second, and subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_hour(),
+    ///     utc_datetime!(2022-02-18 15:00)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_hour(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_hour())
     }
 
     /// Replace the minutes within the hour.
@@ -975,20 +1004,32 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_minute(7),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 01:07:03.004_005_006))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_minute(7),
+    ///     Ok(utc_datetime!(2022-02-18 01:07:03.004_005_006))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_minute(60).is_err()); // 60 isn't a valid minute
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_minute(60).is_err()); // 60 isn't a valid minute
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
-    pub const fn replace_minute(
-        self,
-        sunday_based_week: u8,
-    ) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_minute(sunday_based_week))))
+    pub const fn replace_minute(self, minute: u8) -> Result<Self, error::ComponentRange> {
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_minute(minute)
+        )))
+    }
+
+    /// Truncate to the minute, setting the second and subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_minute(),
+    ///     utc_datetime!(2022-02-18 15:30)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_minute(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_minute())
     }
 
     /// Replace the seconds within the minute.
@@ -996,20 +1037,32 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_second(7),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 01:02:07.004_005_006))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_second(7),
+    ///     Ok(utc_datetime!(2022-02-18 01:02:07.004_005_006))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_second(60).is_err()); // 60 isn't a valid second
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_second(60).is_err()); // 60 isn't a valid second
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
-    pub const fn replace_second(
-        self,
-        monday_based_week: u8,
-    ) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_second(monday_based_week))))
+    pub const fn replace_second(self, second: u8) -> Result<Self, error::ComponentRange> {
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_second(second)
+        )))
+    }
+
+    /// Truncate to the second, setting the subsecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_second(),
+    ///     utc_datetime!(2022-02-18 15:30:45)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_second(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_second())
     }
 
     /// Replace the milliseconds within the second.
@@ -1017,10 +1070,10 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_millisecond(7),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 01:02:03.007))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_millisecond(7),
+    ///     Ok(utc_datetime!(2022-02-18 01:02:03.007))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_millisecond(1_000).is_err()); // 1_000 isn't a valid millisecond
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_millisecond(1_000).is_err()); // 1_000 isn't a valid millisecond
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
@@ -1028,9 +1081,24 @@ impl UtcDateTime {
         self,
         millisecond: u16,
     ) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_millisecond(millisecond))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_millisecond(millisecond)
+        )))
+    }
+
+    /// Truncate to the millisecond, setting the microsecond and nanosecond components to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_millisecond(),
+    ///     utc_datetime!(2022-02-18 15:30:45.123)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_millisecond(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_millisecond())
     }
 
     /// Replace the microseconds within the second.
@@ -1038,10 +1106,10 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_microsecond(7_008),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 01:02:03.007_008))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_microsecond(7_008),
+    ///     Ok(utc_datetime!(2022-02-18 01:02:03.007_008))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_microsecond(1_000_000).is_err()); // 1_000_000 isn't a valid microsecond
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_microsecond(1_000_000).is_err()); // 1_000_000 isn't a valid microsecond
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
@@ -1049,9 +1117,24 @@ impl UtcDateTime {
         self,
         microsecond: u32,
     ) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_microsecond(microsecond))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_microsecond(microsecond)
+        )))
+    }
+
+    /// Truncate to the microsecond, setting the nanosecond component to zero.
+    ///
+    /// ```rust
+    /// # use time_macros::utc_datetime;
+    /// assert_eq!(
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456_789).truncate_to_microsecond(),
+    ///     utc_datetime!(2022-02-18 15:30:45.123_456)
+    /// );
+    /// ```
+    #[must_use = "This method does not mutate the original `UtcDateTime`."]
+    #[inline]
+    pub const fn truncate_to_microsecond(self) -> Self {
+        Self::from_primitive(self.inner.truncate_to_microsecond())
     }
 
     /// Replace the nanoseconds within the second.
@@ -1059,17 +1142,17 @@ impl UtcDateTime {
     /// ```rust
     /// # use time_macros::utc_datetime;
     /// assert_eq!(
-    ///     utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_nanosecond(7_008_009),
-    ///     Ok(utc_datetime!(2022 - 02 - 18 01:02:03.007_008_009))
+    ///     utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_nanosecond(7_008_009),
+    ///     Ok(utc_datetime!(2022-02-18 01:02:03.007_008_009))
     /// );
-    /// assert!(utc_datetime!(2022 - 02 - 18 01:02:03.004_005_006).replace_nanosecond(1_000_000_000).is_err()); // 1_000_000_000 isn't a valid nanosecond
+    /// assert!(utc_datetime!(2022-02-18 01:02:03.004_005_006).replace_nanosecond(1_000_000_000).is_err()); // 1_000_000_000 isn't a valid nanosecond
     /// ```
     #[must_use = "This method does not mutate the original `UtcDateTime`."]
     #[inline]
     pub const fn replace_nanosecond(self, nanosecond: u32) -> Result<Self, error::ComponentRange> {
-        Ok(Self::from_primitive(const_try!(self
-            .inner
-            .replace_nanosecond(nanosecond))))
+        Ok(Self::from_primitive(const_try!(
+            self.inner.replace_nanosecond(nanosecond)
+        )))
     }
 }
 
@@ -1083,12 +1166,7 @@ impl UtcDateTime {
         output: &mut (impl io::Write + ?Sized),
         format: &(impl Formattable + ?Sized),
     ) -> Result<usize, error::Format> {
-        format.format_into(
-            output,
-            Some(self.date()),
-            Some(self.time()),
-            Some(UtcOffset::UTC),
-        )
+        format.format_into(output, &self, &mut Default::default())
     }
 
     /// Format the `UtcDateTime` using the provided [format
@@ -1097,7 +1175,7 @@ impl UtcDateTime {
     /// ```rust
     /// # use time::format_description;
     /// # use time_macros::utc_datetime;
-    /// let format = format_description::parse(
+    /// let format = format_description::parse_borrowed::<3>(
     ///     "[year]-[month]-[day] [hour]:[minute]:[second] [offset_hour \
     ///          sign:mandatory]:[offset_minute]:[offset_second]",
     /// )?;
@@ -1109,7 +1187,7 @@ impl UtcDateTime {
     /// ```
     #[inline]
     pub fn format(self, format: &(impl Formattable + ?Sized)) -> Result<String, error::Format> {
-        format.format(Some(self.date()), Some(self.time()), Some(UtcOffset::UTC))
+        format.format(&self, &mut Default::default())
     }
 }
 
@@ -1153,32 +1231,58 @@ impl UtcDateTime {
     }
 }
 
+// This no longer needs special handling, as the format is fixed and doesn't require anything
+// advanced. Trait impls can't be deprecated and the info is still useful for other types
+// implementing `SmartDisplay`, so leave it as-is for now.
 impl SmartDisplay for UtcDateTime {
     type Metadata = ();
 
     #[inline]
-    fn metadata(&self, _: FormatterOptions) -> Metadata<'_, Self> {
-        let width = smart_display::padded_width_of!(self.date(), " ", self.time(), " +00");
+    fn metadata(&self, f: FormatterOptions) -> Metadata<'_, Self> {
+        let width = self.as_primitive().metadata(f).unpadded_width() + 4;
         Metadata::new(width, self, ())
     }
 
     #[inline]
-    fn fmt_with_metadata(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        metadata: Metadata<Self>,
-    ) -> fmt::Result {
-        f.pad_with_width(
-            metadata.unpadded_width(),
-            format_args!("{} {} +00", self.date(), self.time()),
-        )
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl UtcDateTime {
+    /// The maximum number of bytes that the `fmt_into_buffer` method will write, which is also used
+    /// for the `Display` implementation.
+    pub(crate) const DISPLAY_BUFFER_SIZE: usize = PrimitiveDateTime::DISPLAY_BUFFER_SIZE + 4;
+
+    /// Format the `PrimitiveDateTime` into the provided buffer, returning the number of bytes
+    /// written.
+    #[inline]
+    pub(crate) fn fmt_into_buffer(
+        self,
+        buf: &mut [MaybeUninit<u8>; Self::DISPLAY_BUFFER_SIZE],
+    ) -> usize {
+        // Safety: The buffer is large enough that the first chunk is in bounds.
+        let pdt_len = self
+            .inner
+            .fmt_into_buffer(unsafe { buf.first_chunk_mut().unwrap_unchecked() });
+        // Safety: The buffer is large enough to hold the additional 4 bytes.
+        unsafe {
+            b" +00"
+                .as_ptr()
+                .copy_to_nonoverlapping(buf.as_mut_ptr().add(pdt_len).cast(), 4)
+        };
+        pdt_len + 4
     }
 }
 
 impl fmt::Display for UtcDateTime {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        SmartDisplay::fmt(self, f)
+        let mut buf = [MaybeUninit::uninit(); Self::DISPLAY_BUFFER_SIZE];
+        let len = self.fmt_into_buffer(&mut buf);
+        // Safety: All bytes up to `len` have been initialized with ASCII characters.
+        let s = unsafe { str_from_raw_parts(buf.as_ptr().cast(), len) };
+        f.pad(s)
     }
 }
 
@@ -1289,11 +1393,7 @@ impl SubAssign<StdDuration> for UtcDateTime {
 impl Sub for UtcDateTime {
     type Output = Duration;
 
-    /// # Panics
-    ///
-    /// This may panic if an overflow occurs.
     #[inline]
-    #[track_caller]
     fn sub(self, rhs: Self) -> Self::Output {
         self.inner.sub(rhs.inner)
     }

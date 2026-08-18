@@ -23,8 +23,8 @@ name = "rustversion"
 readme = "README.md"
 repository = "https://github.com/dtolnay/rustversion"
 rust-version = "1.31"
-version = "1.0.22"
+version = "1.0.23"
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--generate-link-to-definition", "--extern-html-root-url=core=https://doc.rust-lang.org", "--extern-html-root-url=alloc=https://doc.rust-lang.org", "--extern-html-root-url=std=https://doc.rust-lang.org", "--extern-html-root-url=proc_macro=https://doc.rust-lang.org"]
+rustdoc-args = ["--generate-link-to-definition", "--generate-macro-expansion", "--extern-html-root-url=core=https://doc.rust-lang.org", "--extern-html-root-url=alloc=https://doc.rust-lang.org", "--extern-html-root-url=std=https://doc.rust-lang.org", "--extern-html-root-url=proc_macro=https://doc.rust-lang.org"]
 targets = ["x86_64-unknown-linux-gnu"]

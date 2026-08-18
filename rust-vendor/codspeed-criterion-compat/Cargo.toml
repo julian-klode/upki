@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.85"
 name = "codspeed-criterion-compat"
-version = "4.7.0"
+version = "5.0.1"
 authors = ["Arthur Pastel <arthur@codspeed.io>"]
 build = "build.rs"
 autolib = false
@@ -104,6 +104,11 @@ path = "benches/criterion_integration_with_inputs.rs"
 harness = false
 
 [[bench]]
+name = "custom_main"
+path = "benches/custom_main.rs"
+harness = false
+
+[[bench]]
 name = "test_benches"
 path = "benches/test_benches.rs"
 harness = false
@@ -118,13 +123,13 @@ features = ["std"]
 default-features = false
 
 [dependencies.codspeed]
-version = "=4.7.0"
+version = "=5.0.1"
 
 [dependencies.colored]
-version = "2.1.0"
+version = "3.0.0"
 
 [dependencies.criterion]
-version = "=4.7.0"
+version = "=5.0.1"
 default-features = false
 package = "codspeed-criterion-compat-walltime"
 

@@ -12,6 +12,7 @@ use crate::error;
 ///
 /// As order is dependent on context (Sunday could be either two days after or five days before
 /// Friday), this type does not implement `PartialOrd` or `Ord`.
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Weekday {
     #[expect(missing_docs)]
@@ -101,7 +102,7 @@ impl Weekday {
     /// ```
     #[inline]
     pub const fn nth_prev(self, n: u8) -> Self {
-        match self.number_days_from_monday() as i8 - (n % 7) as i8 {
+        match self.number_days_from_monday().cast_signed() - (n % 7).cast_signed() {
             1 | -6 => Tuesday,
             2 | -5 => Wednesday,
             3 | -4 => Thursday,
@@ -170,6 +171,7 @@ impl Weekday {
 }
 
 mod private {
+    /// Metadata for `Weekday`.
     #[non_exhaustive]
     #[derive(Debug, Clone, Copy)]
     pub struct WeekdayMetadata;
