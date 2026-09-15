@@ -1,6 +1,6 @@
 [Unit]
 Description=upki periodic fetcher
-After=network-online.target
+After=apparmor.service network-online.target
 Wants=network-online.target
 
 [Service]
@@ -8,6 +8,7 @@ Type=oneshot
 
 User=upki
 Group=upki
+AppArmorProfile=upki-fetch
 
 StateDirectory=upki
 StateDirectoryMode=0755
