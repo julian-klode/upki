@@ -1,0 +1,255 @@
+#!/usr/bin/python3
+"""Exercise the installed fetch service and AppArmor policy without Internet access.
+
+An empty manifest exercises index creation/replacement. Synthetic, hash-checked
+payloads then exercise downloads, repairs and cleanup; they are deliberately not
+CRLite filters, so those stages do not claim to test certificate revocation.
+"""
+
+import contextlib
+import hashlib
+import http.server
+import json
+import os
+from pathlib import Path
+import pwd
+import shutil
+import subprocess
+import tempfile
+import threading
+
+
+SERVICE = "upki-fetch.service"
+TIMER = "upki-fetch.timer"
+CONFIG = Path("/etc/upki/config.toml")
+CACHE = Path("/var/cache/upki/revocation")
+PROFILE = "upki-fetch"
+
+
+def run(*args, check=True):
+    result = subprocess.run(args, text=True, capture_output=True, timeout=90)
+    if check and result.returncode:
+        raise RuntimeError(
+            f"{args!r} exited {result.returncode}\n{result.stdout}{result.stderr}"
+        )
+    return result
+
+
+def require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def as_upki(*args, confined=False, check=True):
+    command = ["runuser", "-u", "upki", "--"]
+    if confined:
+        command += ["aa-exec", "-p", PROFILE, "--"]
+    return run(*command, "/usr/bin/upki", *args, check=check)
+
+
+class FixtureServer(http.server.ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(self):
+        super().__init__(("127.0.0.1", 0), FixtureHandler)
+        self.payloads = {}
+        self.generation = 0
+        self.requests = []
+        self.labels = []
+        self.errors = []
+
+    def manifest(self):
+        return {
+            "generated_at": 1765446031 + self.generation,
+            "comment": f"AppArmor fixture generation {self.generation}",
+            "files": [
+                {"filename": name, "size": len(data),
+                 "hash": hashlib.sha256(data).hexdigest()}
+                for name, data in sorted(self.payloads.items())
+            ],
+        }
+
+
+class FixtureHandler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        self.server.requests.append(self.path)
+        if self.path == "/manifest.json":
+            try:
+                # Observe the actual fetch process while it waits for our reply.
+                # Never set AppArmorProfile in a test drop-in: that would hide
+                # a missing setting in the shipped unit.
+                pid = int(run("systemctl", "show", SERVICE, "-p", "MainPID",
+                              "--value").stdout.strip())
+                require(pid > 0, "fetch service has no running process")
+                label = Path(f"/proc/{pid}/attr/current").read_text().strip()
+                parts = label.split(" (", 1)[0].split("//&")
+                require(PROFILE in parts, f"service is not confined: {label}")
+                # main() checks that this component is enforcing. A stack can
+                # have a combined mode such as "mixed" without dropping it.
+                self.server.labels.append(label)
+            except Exception as error:
+                self.server.errors.append(str(error))
+                self.send_error(500, "service confinement check failed")
+                return
+            body = json.dumps(self.server.manifest()).encode()
+        else:
+            body = self.server.payloads.get(self.path.removeprefix("/"))
+            if body is None:
+                self.send_error(404)
+                return
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+@contextlib.contextmanager
+def preserved_state():
+    """Restore the configuration, original cache and timer even after failure."""
+    timer_active = run("systemctl", "is-active", "--quiet", TIMER,
+                       check=False).returncode == 0
+    run("systemctl", "stop", TIMER, SERVICE)
+    try:
+        # Do not automatically delete this directory: if restoration itself
+        # fails, the original data must remain available for recovery.
+        work = Path(tempfile.mkdtemp(prefix="apparmor-test-", dir=CACHE.parent))
+        print(f"Configuration/cache recovery directory: {work}")
+        shutil.copy2(CONFIG, work / "config.saved")
+        had_cache = CACHE.exists()
+        if had_cache:
+            CACHE.rename(work / "cache.saved")
+        try:
+            CACHE.mkdir(mode=0o755)
+            account = pwd.getpwnam("upki")
+            os.chown(CACHE, account.pw_uid, account.pw_gid)
+            yield
+        finally:
+            run("systemctl", "stop", SERVICE)
+            shutil.copy2(work / "config.saved", CONFIG)
+            if CACHE.exists():
+                shutil.rmtree(CACHE)
+            if had_cache:
+                (work / "cache.saved").rename(CACHE)
+            shutil.rmtree(work)
+    finally:
+        if timer_active:
+            run("systemctl", "start", TIMER)
+
+
+def fetch(server):
+    # Each scenario deliberately starts the service; avoid its start-rate limit.
+    run("systemctl", "reset-failed", SERVICE)
+    labels_before = len(server.labels)
+    result = run("systemctl", "start", SERVICE, check=False)
+    require(not server.errors, f"confinement checks failed: {server.errors}")
+    require(result.returncode == 0,
+            f"service failed: {result.stdout}{result.stderr}")
+    require(len(server.labels) > labels_before, "service did not fetch manifest")
+    as_upki("--config-file", str(CONFIG), "verify")
+    require(json.loads((CACHE / "manifest.json").read_text()) == server.manifest(),
+            "cached manifest does not match the server")
+    for name, data in server.payloads.items():
+        require((CACHE / name).read_bytes() == data, f"incorrect cache file: {name}")
+
+
+def negative_read():
+    fd, name = tempfile.mkstemp(prefix="apparmor-denied-", suffix=".toml",
+                                dir=CONFIG.parent)
+    os.close(fd)
+    forbidden = Path(name)
+    try:
+        shutil.copyfile(CONFIG, forbidden)
+        forbidden.chmod(0o644)
+        args = ("--config-file", str(forbidden), "show-config")
+        # Control: same user and file, without this profile, must succeed.
+        as_upki(*args)
+        result = as_upki(*args, confined=True, check=False)
+        require(result.returncode != 0 and str(forbidden) in result.stderr
+                and "Permission denied" in result.stderr,
+                f"unauthorized read was not blocked as expected: {result}")
+    finally:
+        forbidden.unlink()
+
+
+def main():
+    require(os.geteuid() == 0, "test requires root in an isolated VM")
+    profiles = Path("/sys/kernel/security/apparmor/profiles").read_text()
+    require(f"{PROFILE} (enforce)" in profiles.splitlines(),
+            "installed profile is missing or not enforcing")
+    selected = run("systemctl", "show", SERVICE, "-p", "AppArmorProfile",
+                   "--value").stdout.strip()
+    require(selected == PROFILE, f"unexpected service profile: {selected!r}")
+    server = FixtureServer()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with preserved_state():
+            CONFIG.write_text(
+                'cache-dir = "/var/cache/upki"\n\n[revocation]\n'
+                f'fetch-url = "http://127.0.0.1:{server.server_port}/"\n'
+            )
+            # Empty manifests have a valid binary index, with no CRLite fixture
+            # needed. Keeping its descriptor open makes inode reuse impossible.
+            fetch(server)
+            require((CACHE / "index.bin").read_bytes().startswith(b"upkiidx1"),
+                    "empty binary index was not created")
+            with (CACHE / "index.bin").open("rb") as old_index:
+                server.generation += 1
+                fetch(server)
+                require(os.fstat(old_index.fileno()).st_ino
+                        != (CACHE / "index.bin").stat().st_ino,
+                        "index was not atomically replaced")
+            print("PASS: service confinement and index creation/replacement")
+
+            server.payloads = {"sample.filter": b"filter payload one\n",
+                               "sample.delta": b"delta payload\n"}
+            server.generation += 1
+            account = pwd.getpwnam("upki")
+            stale = [CACHE / "obsolete.filter", CACHE / "obsolete.delta"]
+            for path in stale:
+                path.write_bytes(b"obsolete\n")
+                os.chown(path, account.pw_uid, account.pw_gid)
+            fetch(server)
+            require(all(not path.exists() for path in stale),
+                    "obsolete files were not removed")
+            print("PASS: fresh downloads, hashes and obsolete-file cleanup")
+
+            server.requests.clear()
+            fetch(server)
+            require(server.requests == ["/manifest.json"],
+                    f"unchanged payloads were downloaded again: {server.requests}")
+
+            # A new payload at an existing name exercises atomic replacement.
+            with (CACHE / "sample.filter").open("rb") as old_filter:
+                server.payloads = {"sample.filter": b"filter payload two\n"}
+                server.generation += 1
+                fetch(server)
+                require(os.fstat(old_filter.fileno()).st_ino
+                        != (CACHE / "sample.filter").stat().st_ino,
+                        "changed filter was not atomically replaced")
+            require((CACHE / "sample.delta").exists(),
+                    "previous-manifest delta was removed too early")
+            fetch(server)
+            require(not (CACHE / "sample.delta").exists(),
+                    "unreferenced delta survived the following fetch")
+            print("PASS: cache reuse, payload replacement and deferred cleanup")
+            negative_read()
+            print("PASS: unauthorized read denied; unconfined control succeeds")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        # Keep diagnostics on stdout; autopkgtest treats unexpected stderr as a
+        # failure independently of the exit code.
+        print(run("journalctl", "-u", SERVICE, "-n", "60", "--no-pager",
+                  check=False).stdout)
+        raise
