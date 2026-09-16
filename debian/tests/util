@@ -1,6 +1,6 @@
 #!/bin/sh
 
-config_path=/etc/xdg/upki/config.toml
+config_path=/etc/upki/config.toml
 
 adjust_fetch_url() {
     url="$1"
