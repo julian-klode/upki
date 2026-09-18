@@ -50,8 +50,13 @@ vendor-deps-cargo:
 	env -i cargo-vendor-filterer --all-features  --tier 2  --platform '*-*-linux-gnu' --platform '*-*-linux-gnueabi' $(CARGO_VENDOR_DIR)
 
 vendor-deps: vendor-deps-cargo
-	rm -r \
-		$(CARGO_VENDOR_DIR)/*/tests
+	# cbindgen's build script requires its test fixtures.
+	for tests in $(CARGO_VENDOR_DIR)/*/tests; do \
+		[ -d "$$tests" ] || continue; \
+		if [ "$$tests" != "$(CARGO_VENDOR_DIR)/cbindgen/tests" ]; then \
+			rm -r "$$tests"; \
+		fi; \
+	done
 	# Remove the checksum files to allow us to patch the crates to remove extraneous dependencies
 	for crate in $(CARGO_VENDOR_DIR)/*; do \
 		sed -i 's/^{"files":.*"package":"\([a-z0-9]\+\)"}$$/{"files":{},"package":"\1"}/' $$crate/.cargo-checksum.json; \
@@ -72,7 +77,7 @@ execute_after_dh_install:
 	dh_installsysusers
 
 override_dh_auto_test:
-	#$(CARGO) test
+	$(CARGO) test
 	# dh-cargo-built-using is horribly broken and does not support our embedded aws-lc library.
 	# it would normally be run by dh_auto_test
 
