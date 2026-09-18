@@ -1,3 +1,22 @@
+upki (1.0.0~beta.3+repack-0ubuntu1) stonking; urgency=medium
+
+  [ Rui Marques ]
+  * Fix the upki autopkgtest configuration path
+
+  [ Julian Andres Klode ]
+  * openssl: Do not fail on empty store
+  * d/rules: Check that we do not call setuid() and friends
+  * Recommend upki from the libraries
+  * Only fetch new revocations every 6 hours
+  * upki fetch: Refuse to run as root
+  * rust-vendor: revendor
+
+  [ Zara Grigoryan ]
+  * d/upki: Ship AppArmor profile usr.bin.upki
+  * debian: enable unit tests and preserve cbindgen fixtures
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Fri, 18 Sep 2026 15:22:26 +0200
+
 upki (1.0.0~beta.3-0ubuntu1) stonking; urgency=medium
 
   * New upstream release
