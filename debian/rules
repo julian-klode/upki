@@ -63,6 +63,19 @@ vendor-tarball: vendor-tarball-quick-check vendor-deps
 	tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime -caf ../$(VENDOR_TARBALL) $(CARGO_VENDOR_DIR)
 
 override_dh_auto_configure:
+	# Reject any setuid/setgid-family calls in first-party and vendored code.
+	# The whole tree is scanned except the binding crates (libc, nix, rustix,
+	# linux-raw-sys, ...) which legitimately define such wrappers. Requiring a
+	# following "(" (whitespace allowed) limits matches to actual call sites,
+	# skipping doc mentions.
+	@if grep -rnE 'set(e|re|res)?[ug]id[[:space:]]*[(]' \
+	    --include='*.rs' --include='*.c' --include='*.h' \
+	    --exclude-dir=.git --exclude-dir=.pc --exclude-dir=debian --exclude-dir=target \
+	    --exclude-dir=libc --exclude-dir=linux-raw-sys --exclude-dir=nix --exclude-dir=rustix \
+	    .; then \
+		echo >&2 "ERROR: setuid/setgid-family calls are not allowed in the code base"; \
+		exit 1; \
+	fi
 	CARGO_HOME=$(CURDIR)/debian/cargo_home DEB_CARGO_CRATE=upki_$(VERSION) $(CARGO) prepare-debian $(CARGO_VENDOR_DIR)
 	/usr/share/cargo/bin/dh-cargo-vendored-sources
 
