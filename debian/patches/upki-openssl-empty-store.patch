@@ -1,0 +1,26 @@
+From: Julian Andres Klode <julian.klode@canonical.com>
+Date: Fri, 18 Sep 2026 14:02:26 +0200
+Subject: upki-openssl: Return success on file read error
+
+If we cannot read revocations, do not produce an error as otherwise
+we end up breaking systems that do not have upki data fetched.
+
+This check is too broad and should be narrowed down, but it is
+better than breakage at this point.
+---
+ upki-openssl/src/lib.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/upki-openssl/src/lib.rs b/upki-openssl/src/lib.rs
+index 6a4dcbe..03ba543 100644
+--- a/upki-openssl/src/lib.rs
++++ b/upki-openssl/src/lib.rs
+@@ -150,7 +150,7 @@ pub unsafe extern "C" fn upki_openssl_verify_callback(
+             x509_ctx.set_error(X509_V_ERR_CERT_REVOKED);
+             preverify_ok = 0;
+         }
+-        upki_result::UPKI_REVOCATION_NOT_COVERED | upki_result::UPKI_REVOCATION_NOT_REVOKED => {}
++        upki_result::UPKI_ERR_REVOCATION_FILE_READ | upki_result::UPKI_REVOCATION_NOT_COVERED | upki_result::UPKI_REVOCATION_NOT_REVOKED => {}
+         _e => {
+             x509_ctx.set_error(X509_V_ERR_APPLICATION_VERIFICATION);
+             preverify_ok = 0;

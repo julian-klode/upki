@@ -1,3 +1,4 @@
 workspace-exclude.patch
 aws-lc.patch
 release-lto.patch
+upki-openssl-empty-store.patch
