@@ -1,0 +1,104 @@
+From: Julian Andres Klode <julian.klode@canonical.com>
+Date: Fri, 18 Sep 2026 14:34:52 +0200
+Subject: upki fetch: Refuse to run as root
+
+Fetching as root would leave root-owned files in the revocation cache that the unprivileged fetch service can then no longer update.  Tell the user to start upki-fetch.service instead.  The check uses libc::geteuid() on unix and is a no-op elsewhere.
+---
+ Cargo.lock               |  1 +
+ Cargo.toml               |  1 +
+ upki-cli/Cargo.toml      |  3 +++
+ upki-cli/src/bin/upki.rs | 29 ++++++++++++++++++++++++++++-
+ 4 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 4d04e8b..3c32eea 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2763,6 +2763,7 @@ dependencies = [
+  "eyre",
+  "insta",
+  "insta-cmd",
++ "libc",
+  "rand 0.10.2",
+  "regex",
+  "rustls-pki-types",
+diff --git a/Cargo.toml b/Cargo.toml
+index 874736b..c386e68 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -24,6 +24,7 @@ hex = { version = "0.4", features = ["serde"] }
+ http = "1"
+ insta = { version = "1.44.3", features = ["filters"] }
+ insta-cmd = "0.7"
++libc = "0.2"
+ openssl-sys = "0.9"
+ reqwest = { version = "0.13", default-features = false, features = ["charset", "h2", "http2", "json"] }
+ rand = "0.10"
+diff --git a/upki-cli/Cargo.toml b/upki-cli/Cargo.toml
+index ce6738c..c98aedf 100644
+--- a/upki-cli/Cargo.toml
++++ b/upki-cli/Cargo.toml
+@@ -24,6 +24,9 @@ toml.workspace = true
+ tracing.workspace = true
+ tracing-subscriber.workspace = true
+ 
++[target.'cfg(unix)'.dependencies]
++libc.workspace = true
++
+ [dev-dependencies]
+ insta.workspace = true
+ insta-cmd.workspace = true
+diff --git a/upki-cli/src/bin/upki.rs b/upki-cli/src/bin/upki.rs
+index 027ca09..58e7600 100644
+--- a/upki-cli/src/bin/upki.rs
++++ b/upki-cli/src/bin/upki.rs
+@@ -47,7 +47,10 @@ async fn main() -> Result<ExitCode, Report> {
+ 
+     Ok(match args.command {
+         #[cfg(feature = "__fetch")]
+-        Command::Fetch { dry_run } => fetch(dry_run, &config).await?,
++        Command::Fetch { dry_run } => {
++            refuse_root()?;
++            fetch(dry_run, &config).await?
++        }
+         #[cfg(feature = "__fetch")]
+         Command::Verify => Manifest::from_config(&config)?.verify(&config)?,
+         Command::ShowConfigPath => unreachable!(),
+@@ -73,6 +76,27 @@ async fn main() -> Result<ExitCode, Report> {
+     })
+ }
+ 
++/// Refuse to run as root.
++///
++/// Fetching as root would leave root-owned files in the revocation cache
++/// that the unprivileged fetch service can then no longer update, so tell
++/// the user to start the dedicated service instead.
++#[cfg(all(feature = "__fetch", unix))]
++fn refuse_root() -> Result<(), Report> {
++    // SAFETY: geteuid is always safe to call.
++    if unsafe { libc::geteuid() } != 0 {
++        return Ok(());
++    }
++    Err(Report::msg(
++        "refusing to run as root; start `upki-fetch.service` instead",
++    ))
++}
++
++#[cfg(all(feature = "__fetch", not(unix)))]
++fn refuse_root() -> Result<(), Report> {
++    Ok(())
++}
++
+ #[derive(Debug, Parser)]
+ #[command(name = "upki", author, version, about)]
+ struct Args {
+@@ -97,6 +121,9 @@ enum Command {
+     /// If the `revocation.cache_dir` path does not exist, this tool creates it and parent directories.
+     ///
+     /// This also deletes filters that become unreferenced.
++    ///
++    /// This command refuses to run as root.  Use the packaged `upki-fetch.service` instead,
++    /// which runs as the dedicated unprivileged `upki` user.
+     #[cfg(feature = "__fetch")]
+     Fetch {
+         /// Download the new manifest, and then describe what actions are needed to
