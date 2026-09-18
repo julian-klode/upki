@@ -13,7 +13,6 @@ default = []
 rustc-dep-of-std = ["core", "alloc"]
 
 [lib]
-name = "hermit_abi"
 path = "src/lib.rs"
 
 [package]

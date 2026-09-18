@@ -236,6 +236,9 @@ Win32_Web_InternetExplorer = ["Win32_Web"]
 default = []
 docs = []
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Microsoft"]
 categories = ["os::windows-apis"]

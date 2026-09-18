@@ -9,7 +9,6 @@ version = "2"
 default = []
 
 [lib]
-name = "jni_sys"
 path = "src/lib.rs"
 
 [package]

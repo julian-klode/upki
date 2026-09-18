@@ -15,7 +15,6 @@ features = ["diff"]
 version = "1.0.81"
 
 [lib]
-name = "thiserror"
 path = "src/lib.rs"
 
 [package]

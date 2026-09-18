@@ -1,5 +1,8 @@
 [dependencies]
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 description = "The internal JVM support component of the rustls-platform-verifier crate. You shouldn't depend on this directly."
 edition = "2021"

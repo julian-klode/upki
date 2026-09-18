@@ -1,3 +1,6 @@
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Microsoft"]
 description = "Import libs for Windows"

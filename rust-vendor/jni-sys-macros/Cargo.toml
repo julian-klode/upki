@@ -6,9 +6,7 @@ features = ["full"]
 version = "2"
 
 [lib]
-name = "jni_sys_macros"
 path = "src/lib.rs"
-proc-macro = true
 
 [package]
 authors = ["Robert Bragg <robert@sixbynine.org>"]

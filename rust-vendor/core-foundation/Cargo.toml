@@ -17,7 +17,6 @@ mac_os_10_8_features = ["core-foundation-sys/mac_os_10_8_features"]
 with-uuid = ["dep:uuid"]
 
 [lib]
-name = "core_foundation"
 path = "src/lib.rs"
 
 [lints.clippy]

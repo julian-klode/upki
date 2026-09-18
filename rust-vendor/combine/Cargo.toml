@@ -114,7 +114,6 @@ tokio-02 = ["pin-project", "std", "tokio-02-dep", "futures-core-03", "pin-projec
 tokio-03 = ["pin-project", "std", "tokio-03-dep", "futures-core-03", "pin-project-lite"]
 
 [lib]
-name = "combine"
 path = "src/lib.rs"
 
 [package]

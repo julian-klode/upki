@@ -12,7 +12,6 @@ futures-core-03-stream = ["js-sys/futures-core-03-stream"]
 std = ["wasm-bindgen/std", "js-sys/std"]
 
 [lib]
-name = "wasm_bindgen_futures"
 path = "src/lib.rs"
 
 [lints.clippy]

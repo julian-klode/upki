@@ -7,7 +7,6 @@ features = ["Win32_System_SystemInformation", "Win32_System_Time"]
 version = "0.61"
 
 [lib]
-name = "schannel"
 path = "src/lib.rs"
 
 [package]

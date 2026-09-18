@@ -40,6 +40,9 @@ version = "0.3.0"
 default = []
 invocation = ["java-locator", "libloading"]
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Josh Chase <josh@prevoty.com>"]
 categories = ["api-bindings"]

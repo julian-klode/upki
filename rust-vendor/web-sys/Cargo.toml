@@ -1716,10 +1716,7 @@ gpu_texture_usage = []
 std = ["wasm-bindgen/std", "js-sys/std"]
 
 [lib]
-doctest = false
-name = "web_sys"
 path = "src/lib.rs"
-test = false
 
 [lints.clippy]
 large_enum_variant = "allow"

@@ -27,7 +27,6 @@ protocol = ["plain", "bitflags", "redox_syscall"]
 std = ["base"]
 
 [lib]
-name = "libredox"
 path = "src/lib.rs"
 
 [package]

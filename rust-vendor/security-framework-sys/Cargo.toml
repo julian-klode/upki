@@ -19,7 +19,6 @@ default = ["OSX_10_13"]
 macos-12 = []
 
 [lib]
-name = "security_framework_sys"
 path = "src/lib.rs"
 
 [lints.clippy]

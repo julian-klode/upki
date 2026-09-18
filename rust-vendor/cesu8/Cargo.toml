@@ -1,6 +1,9 @@
 [features]
 unstable = []
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Eric Kidd <git@randomhacks.net>"]
 description = "Convert to and from CESU-8 encoding (similar to UTF-8)"

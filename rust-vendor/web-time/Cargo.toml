@@ -4,6 +4,9 @@ version = "1"
 [features]
 serde = ["dep:serde"]
 
+[lib]
+path = "src/lib.rs"
+
 [lints.clippy]
 absolute_paths = "warn"
 allow_attributes = "warn"

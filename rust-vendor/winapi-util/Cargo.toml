@@ -1,5 +1,4 @@
 [lib]
-name = "winapi_util"
 path = "src/lib.rs"
 
 [package]

@@ -399,6 +399,9 @@ wtypes = []
 wtypesbase = []
 xinput = []
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Peter Atashian <retep998@gmail.com>"]
 categories = ["external-ffi-bindings", "no-std", "os::windows-apis"]

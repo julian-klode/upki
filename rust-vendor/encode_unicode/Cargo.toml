@@ -14,6 +14,9 @@ version = "^2.6"
 default = ["std"]
 std = []
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Torbjørn Birch Moltu <t.b.moltu@lyse.net>"]
 categories = ["encoding", "no-std"]

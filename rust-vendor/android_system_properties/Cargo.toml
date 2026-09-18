@@ -1,6 +1,9 @@
 [dependencies.libc]
 version = "0.2.126"
 
+[lib]
+path = "src/lib.rs"
+
 [package]
 authors = ["Nicolas Silva <nical@fastmail.com>"]
 description = "Minimal Android system properties wrapper"

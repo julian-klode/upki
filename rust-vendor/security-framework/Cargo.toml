@@ -50,7 +50,6 @@ session-tickets = []
 sync-keychain = ["OSX_10_13"]
 
 [lib]
-name = "security_framework"
 path = "src/lib.rs"
 
 [lints.clippy]

@@ -4,7 +4,6 @@
 default = []
 
 [lib]
-name = "once_cell_polyfill"
 path = "src/lib.rs"
 
 [lints.clippy]
