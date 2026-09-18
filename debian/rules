@@ -83,6 +83,7 @@ execute_after_dh_install:
 	# the below step is automatic with debhelper >= 14
 	echo "Installing service users and groups..."
 	dh_installsysusers
+	dh_apparmor -pupki --profile-name=usr.bin.upki
 
 override_dh_auto_test:
 	#$(CARGO) test

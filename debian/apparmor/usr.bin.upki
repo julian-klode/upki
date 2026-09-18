@@ -1,0 +1,32 @@
+#include <tunables/global>
+
+profile /usr/bin/upki {
+  # Runtime libraries, name resolution and public CA certificates.
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/ssl_certs>
+
+  # Temporarily needed until fd delegation lands
+  # Also needed while delegation from unconfined is broken
+  include <abstractions/consoles>
+
+  /usr/bin/upki rix,
+
+  # HTTP(S) transport. DNS permissions are provided by nameservice.
+  network inet stream,
+  network inet6 stream,
+
+  /etc/upki/config.toml r,
+  /etc/ssl/openssl.cnf r,
+
+  # The fetcher hashes existing files, writes temporary files in this directory,
+  # renames them into place and removes obsolete filters and deltas.
+  /var/cache/upki/ r,
+  /var/cache/upki/revocation/ r,
+  /var/cache/upki/revocation/* r,
+  owner /var/cache/upki/revocation/ rw,
+  owner /var/cache/upki/revocation/* rw,
+
+  # Site-specific paths, for example an administrator-selected cache directory.
+  #include if exists <local/usr.bin.upki>
+}
