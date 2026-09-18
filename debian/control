@@ -56,6 +56,7 @@ Multi-Arch: same
 Depends: ${misc:Depends},
          ${shlibs:Depends}
 Pre-Depends: ${misc:Pre-Depends}
+Recommends: upki
 Description: Browser-grade certificate infrastructure (shared library)
  This package provides the libupki shared library which can be used by
  programs to check CRLite revocations and manage certificate revocation
@@ -78,6 +79,7 @@ Multi-Arch: same
 Depends: ${misc:Depends},
          ${shlibs:Depends}
 Pre-Depends: ${misc:Pre-Depends}
+Recommends: upki
 Description: Browser-grade certificate infrastructure (OpenSSL shared library)
  This package provides the libupki-openssl shared library which extends
  libupki with OpenSSL-based certificate operations.
