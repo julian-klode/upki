@@ -1,9 +1,9 @@
 [Unit]
-Description=Run upki fetch every 2 hours
+Description=Run upki fetch every 6 hours
 
 [Timer]
 OnBootSec=10min
-OnUnitActiveSec=2h
+OnUnitActiveSec=6h
 Persistent=true
 
 [Install]
