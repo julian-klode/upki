@@ -1,0 +1,55 @@
+From: Julian Andres Klode <julian.klode@canonical.com>
+Date: Fri, 18 Sep 2026 16:23:15 +0200
+Subject: index: Fix overflow panic on 32-bit targets
+
+A corrupt index header can declare filename and log counts whose
+table sizes overflow a 32-bit usize, making the oversized_table_counts
+test panic with "attempt to multiply with overflow".
+
+Compute the sizes in u64, which cannot overflow for u32-derived
+counts.  Keep the existing bounds check against the actual file size,
+and only then convert back to usize; the conversion errors out cleanly
+for indexes larger than 4 GiB on 32-bit targets.
+
+Assisted-By: LLM
+---
+ upki/src/revocation/index.rs | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/upki/src/revocation/index.rs b/upki/src/revocation/index.rs
+index 48dda8e..22dd833 100644
+--- a/upki/src/revocation/index.rs
++++ b/upki/src/revocation/index.rs
+@@ -102,9 +102,10 @@ impl Index {
+         };
+         let num_logs = u32::read_be(&mut data)? as usize;
+ 
+-        // Read 3: filename table + log table
+-        let logs_offset = num_filenames * FILENAME_SIZE;
+-        let tables_len = logs_offset + num_logs * LOG_DIR_ENTRY_SIZE;
++        // Read 3: filename table + log table.  Compute the sizes in u64: a
++        // corrupt header can declare counts that overflow a 32-bit usize.
++        let logs_offset = num_filenames as u64 * FILENAME_SIZE as u64;
++        let tables_len = logs_offset + num_logs as u64 * LOG_DIR_ENTRY_SIZE as u64;
+ 
+         // A corrupt `num_log_ids` could demand an unreasonable sized allocation. Cap the table
+         // allocation to the file's overall size.
+@@ -115,10 +116,17 @@ impl Index {
+                 path: Some(index_path),
+             })?
+             .len();
+-        if (header_size + tables_len) as u64 > file_len {
++        if header_size as u64 + tables_len > file_len {
+             return Err(Error::IndexDecode("index tables truncated".into()));
+         }
+ 
++        // The sizes are now bounded by the file size, so these conversions
++        // can only fail for unusually large files on 32-bit targets.
++        let logs_offset = usize::try_from(logs_offset)
++            .map_err(|_| Error::IndexDecode("index tables too large".into()))?;
++        let tables_len = usize::try_from(tables_len)
++            .map_err(|_| Error::IndexDecode("index tables too large".into()))?;
++
+         let mut tables = vec![0u8; tables_len];
+         file.read_exact(&mut tables)
+             .map_err(|e| Error::IndexDecode(Box::new(e)))?;
